@@ -53,12 +53,12 @@ public class SecretService : ISecretService
         var exists = await _dbContext.Secrets.FirstOrDefaultAsync(x => x.Id == secret.Id);
         if (exists.xIsEmpty()) return false;
         
-        secret.Title = secret.Title.Trim();
-        secret.Description = secret.Description.Trim();
-        secret.Json = secret.Json.Trim();
-        secret.UpdatedAt = DateTime.Now;
+        exists.Title = secret.Title.Trim();
+        exists.Description = secret.Description.Trim();
+        exists.Json = secret.Json.Trim();
+        exists.UpdatedAt = DateTime.Now;
         
-        _dbContext.Secrets.Update(secret);
+        _dbContext.Secrets.Update(exists);
         return await _dbContext.SaveChangesAsync() > 0;
     }
 
