@@ -68,6 +68,9 @@
                             <MudTextField T="string" Label="이메일" @bind-Value="_userSession.Email" ReadOnly="true"/>
                             <MudTextField T="string" Label="이름" @bind-Value="_userSession.Name" ReadOnly="true"/>
                             <MudTextField T="string" Label="역활" @bind-Value="_userSession.Role" ReadOnly="true"/>
+                            <MudTooltip Text="User Key">
+                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Info" Variant="Variant.Filled" OnClick="GetUserKey"/>
+                            </MudTooltip>
                         </MudStack>
                     </MudPaper>
                 </MudStack>
@@ -82,7 +85,8 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ProtectedSessionStorage ProtectedSessionStorage
-
+@inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
 @code {
 
     private bool _drawerOpen = true;
@@ -136,6 +140,8 @@
             var userId = state.User.Claims.First(m => m.Type == ClaimTypes.NameIdentifier).Value;
             var email = state.User.Claims.First(m => m.Type == ClaimTypes.Email).Value;
             var name = state.User.Claims.First(m => m.Type == ClaimTypes.Name).Value;
+            var key = state.User.Claims.First(m => m.Type == ClaimTypes.PrimarySid).Value;
+            var phone = state.User.Claims.First(m => m.Type == ClaimTypes.MobilePhone).Value;
             var role = state.User.Claims.First(m => m.Type == ClaimTypes.Role).Value;
 
             _userSession = new UserSession()
@@ -143,7 +149,9 @@
                 UserId = userId,
                 Email = email,
                 Name = name,
-                Role = role
+                Role = role,
+                UserKey = key,
+                Phone = phone,
             };
         }
     }
@@ -233,5 +241,11 @@
         NavigationManager.NavigateTo(url);
         _searchTextField.Clear();
         __open = false;
+    }
+
+    private async Task GetUserKey(MouseEventArgs obj)
+    {
+        await JSRuntime.InvokeVoidAsync("copyToClipboard", this._userSession.UserKey);
+        this.Snackbar.Add("copied", Severity.Success);
     }
 }

@@ -26,7 +26,7 @@ public class AuthService : IAuthService
         if (valid == PasswordVerificationResult.Failed) return string.Empty;
         
         var expire = DateTime.UtcNow.AddDays(1);
-        return JwtGenerator.GenerateJwtToken(expire, user.Id,  user.Email, user.UserName, "admin");
+        return JwtGenerator.GenerateJwtToken(expire, user.Id,  user.Email, user.UserName, user.UserKey, user.PhoneNumber,user.RoleName);
     }
 
     public async Task<bool> SignUp(RegisterRequest request)
@@ -39,9 +39,14 @@ public class AuthService : IAuthService
         var newItem = new User()
         {
             Email = request.Email,
+            NormalizedEmail = request.Email.ToUpper(),
             UserName = request.Name,
+            NormalizedUserName = request.Name.ToUpper(),
             PhoneNumber = request.PhoneNumber,
             RoleName = request.RoleName,
+            UserKey = Guid.NewGuid().ToString("N"),
+            PhoneNumberConfirmed = true,
+            EmailConfirmed = true,
         };
         
         var hashPassword = _passwordHasher.HashPassword(newItem, request.Password);

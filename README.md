@@ -113,6 +113,15 @@ public class AwsSecretManagerLoader : IKeyValueLoader, IKeyValueLoopStarter
    ```shell
    "C:\Program Files\dotnet\dotnet.exe" ef database update --project src\BlazorSecretManager.csproj --startup-project src\BlazorSecretManager.csproj --context BlazorSecretManager.SecretDbContext --configuration Debug --verbose [migration file]
    ```
+4. .env 설정
+   1. .env 파일 생성
+   2. 아래와 같이 편집
+   ```dotenv
+   HOST="hosting address"
+   SECURITY_KEY="JWT SECURITY KEY"
+   ISSUER="domain or name"
+   AUDIENCE="domain or name"   
+   ```
    
 ## 주의사항
 * Release 모드에서는 일부 코드가 변경되어야 합니다.   
