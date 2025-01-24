@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BlazorSecretManager;
 
-public class SecretDbContext : IdentityDbContext
+public class AppDbContext : IdentityDbContext
 {
-    public SecretDbContext(DbContextOptions<SecretDbContext> options) : base(options)
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
         
     }

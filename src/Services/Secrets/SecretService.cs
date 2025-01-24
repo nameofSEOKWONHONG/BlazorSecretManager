@@ -9,8 +9,8 @@ namespace BlazorSecretManager.Services.Secrets;
 
 public class SecretService : ISecretService
 {
-    private readonly SecretDbContext _dbContext;
-    public SecretService(SecretDbContext dbContext)
+    private readonly AppDbContext _dbContext;
+    public SecretService(AppDbContext dbContext)
     {
         _dbContext = dbContext;
     }

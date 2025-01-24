@@ -23,113 +23,15 @@ using MudComposite;
 #pragma warning disable EXTEXP0018
 
 var builder = WebApplication.CreateBuilder(args);
-
-#if DEBUG
-DotNetEnv.Env.Load("./.env");
-#endif 
-// Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-
-#if DEBUG
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
-                       throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-#else
-var connectionString = Environment.GetEnvironmentVariable("SQLITE_CONNECTION") ??
-                       throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-#endif
-builder.Services.AddDbContext<SecretDbContext>(options =>
-    options.UseSqlite(connectionString));
-builder.Services.AddIdentity<User, IdentityRole>()
-    .AddEntityFrameworkStores<SecretDbContext>()
-    ;
-
-builder.Services.AddMudServices(config =>
-{
-    config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomRight;
-
-    config.SnackbarConfiguration.PreventDuplicates = false;
-    config.SnackbarConfiguration.NewestOnTop = false;
-    config.SnackbarConfiguration.ShowCloseIcon = true;
-    config.SnackbarConfiguration.VisibleStateDuration = 5000;
-    config.SnackbarConfiguration.HideTransitionDuration = 500;
-    config.SnackbarConfiguration.ShowTransitionDuration = 500;
-    config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
-});
-builder.Services.AddMudComposite();
-
-builder.Services.AddControllers();
-
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<ISecretService, SecretService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IMenuService, MenuService>();
-builder.Services.AddScoped<CustomAuthStateProvider>();
-builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
-builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, BlazorAuthorizationMiddlewareResultHandler>();
-builder.Services.AddAuthenticationCore();
-builder.Services.AddScoped<CircuitHandler, CustomCircuitHandler>();
-
-builder.Services.AddScoped<ISecretComposite, SecretComposite>();
-builder.Services.AddScoped<IUserComposite, UserComposite>();
-
-builder.Services.AddHybridCache(options =>
-{
-    // Maximum size of cached items
-    options.MaximumPayloadBytes = 1024 * 1024 * 10; // 10MB
-    options.MaximumKeyLength = 512;
-
-    // Default timeouts
-    options.DefaultEntryOptions = new HybridCacheEntryOptions
-    {
-        Expiration = TimeSpan.FromMinutes(30),
-        LocalCacheExpiration = TimeSpan.FromMinutes(30)
-    };
-});
+builder.Services.AddMudSecretManager(() => builder.Configuration);
     
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
-
-app.UseHttpsRedirection();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.UseAntiforgery();
-
-app.MapControllers();
-
-app.MapStaticAssets();
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+app.UseMudSecretManager();
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<SecretDbContext>();
-
-    #if DEBUG
-
-    await context.Database.MigrateAsync();
-    
-    await context.Database.ExecuteSqlAsync($"delete from Menus");
-    await context.SaveChangesAsync();
-    
-    var menus = new List<Menu>();
-    menus.Add(new Menu() {Name = "Home", Description = "Home", Url = "/", Icon = Icons.Material.Filled.Home, Sort = 1});
-    menus.Add(new Menu() {Name = "Users", Description = "List of users", Url = "/users", Icon = Icons.Material.Filled.Person, Sort = 2});
-    menus.Add(new Menu() {Name = "Secrets", Description = "List of secrets", Url = "/secrets", Icon = Icons.Material.Filled.Security, Sort = 3});
-    await context.Menus.AddRangeAsync(menus);
-    await context.SaveChangesAsync();    
-
-    #endif
+    var initializer = scope.ServiceProvider.GetRequiredService<ProgramInitializer>();
+    await initializer.InitializeAsync();
 }
 
 app.Run();

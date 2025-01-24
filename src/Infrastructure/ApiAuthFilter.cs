@@ -7,9 +7,9 @@ namespace BlazorSecretManager.Infrastructure;
 
 public class ApiAuthFilter : IAsyncActionFilter
 {
-    private readonly SecretDbContext _dbContext;
+    private readonly AppDbContext _dbContext;
 
-    public ApiAuthFilter(SecretDbContext dbContext)
+    public ApiAuthFilter(AppDbContext dbContext)
     {
         _dbContext = dbContext;
     }

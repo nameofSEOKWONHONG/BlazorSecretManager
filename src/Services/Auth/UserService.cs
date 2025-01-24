@@ -21,10 +21,10 @@ public interface IUserService
 
 public class UserService : IUserService
 {
-    private readonly SecretDbContext _dbContext;
+    private readonly AppDbContext _dbContext;
     private readonly AuthenticationStateProvider _provider;
 
-    public UserService(SecretDbContext dbContext, AuthenticationStateProvider provider)
+    public UserService(AppDbContext dbContext, AuthenticationStateProvider provider)
     {
         _dbContext = dbContext;
         _provider = provider;

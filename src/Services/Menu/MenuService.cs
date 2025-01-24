@@ -6,10 +6,10 @@ namespace BlazorSecretManager.Services.Menu;
 
 public class MenuService : IMenuService
 {
-    private readonly SecretDbContext _dbContext;
+    private readonly AppDbContext _dbContext;
     private readonly HybridCache _hybridCache;
 
-    public MenuService(SecretDbContext dbContext, HybridCache hybridCache)
+    public MenuService(AppDbContext dbContext, HybridCache hybridCache)
     {
         _dbContext = dbContext;
         _hybridCache = hybridCache;

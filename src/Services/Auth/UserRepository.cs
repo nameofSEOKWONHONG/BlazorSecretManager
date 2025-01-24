@@ -8,10 +8,10 @@ namespace BlazorSecretManager.Services.Auth;
 
 public class UserRepository : IUserRepository
 {
-    private readonly SecretDbContext _dbContext;
+    private readonly AppDbContext _dbContext;
     private readonly IPasswordHasher<User> _passwordHasher;
 
-    public UserRepository(SecretDbContext dbContext,
+    public UserRepository(AppDbContext dbContext,
         IPasswordHasher<User> passwordHasher)
     {
         _dbContext = dbContext;

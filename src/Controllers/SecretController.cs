@@ -11,9 +11,9 @@ namespace BlazorSecretManager.Controllers;
 [Route("api/[controller]")]
 public class SecretController : ControllerBase
 {
-    private readonly SecretDbContext _dbContext;
+    private readonly AppDbContext _dbContext;
 
-    public SecretController(SecretDbContext dbContext)
+    public SecretController(AppDbContext dbContext)
     {
         _dbContext = dbContext;
     }
