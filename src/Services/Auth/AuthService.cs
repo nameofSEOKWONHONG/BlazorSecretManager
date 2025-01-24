@@ -28,6 +28,8 @@ public class AuthService : IAuthService
         var valid = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash!, password);
         if (valid == PasswordVerificationResult.Failed) return await Results<string>.FailAsync("Invalid email or password");
         
+        if(user.LockoutEnabled) return await Results<string>.FailAsync("Locked out");
+        
         var expire = DateTime.UtcNow.AddDays(1);
         return await Results<string>.SuccessAsync(JwtGenerator.GenerateJwtToken(expire, user.Id,  user.Email, user.UserName, user.UserKey, user.PhoneNumber,user.RoleName));
     }

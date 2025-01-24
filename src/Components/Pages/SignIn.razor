@@ -72,11 +72,13 @@
         if (results.Succeeded.xIsFalse())
         {
             Snackbar.Add(results.Messages.xJoin(), Severity.Error);
+            Snackbar.Add("request administrator", Severity.Info);
+            return;
         }
         
         if (results.Data.xIsEmpty())
         {
-            Snackbar.Add("request administrator");
+            Snackbar.Add("request administrator", Severity.Info);
             return;
         }
 

@@ -1,0 +1,100 @@
+@page "/users"
+
+@using BlazorSecretManager.Composites
+@using BlazorSecretManager.Entities
+@using BlazorSecretManager.Services.Auth
+@using BlazorSecretManager.Services.Auth.Dtos
+@using Microsoft.AspNetCore.Authorization
+
+@inherits MudComposite.ViewComponents.MudListViewComponent<User, UserSearchModel, IUserComposite>
+
+<PageTitle>Users</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge">
+    <MudPaper Elevation="0" Style="padding: 10px;" >
+        <MudStack Class="d-flex justify-end flex-grow-1 gap-4" Row="true" @onkeypress="this.Composite.SearchKeyUp">
+            <MudTextField T="string" Label="@nameof(UserSearchModel.Email)" @bind-Value="this.Composite.SearchModel.Email" Clearable="true"/>
+            <MudTextField T="string" Label="@nameof(UserSearchModel.Name)" @bind-Value="this.Composite.SearchModel.Name" Clearable="true"/>
+        </MudStack>
+        <br/>
+        <MudPaper Class="d-flex justify-end flex-grow-1 gap-4" Elevation="0">
+            <MudButton StartIcon="@Icons.Material.Filled.Search" Variant="Variant.Filled" Size="Size.Small" Color="Color.Info" OnClick="this.Composite.ReloadServerData">Search</MudButton>
+        </MudPaper>
+    </MudPaper>
+
+    <br/>
+
+    <MudDataGrid T="User"
+                 ServerData="this.Composite.ServerReload"
+                 Dense="true"
+                 Filterable="false"
+                 SortMode="SortMode.None"
+                 Height="960px"
+                 RowStyleFunc="this.Composite.RowStyleFunc"
+                 RowClick="this.Composite.DataGridRowClick"
+                 @ref="_dataGrid">
+        <ColGroup>
+            <col style="width: 10%"/>
+            <col style="width: 20%"/>
+            <col style="width: 10%"/>
+            <col style="width: 20%"/>
+            <col style="width: 10%"/>
+            <col style="width: 10%"/>
+        </ColGroup>
+        <Columns>
+            <PropertyColumn Property="m => m.Email"/>
+            <PropertyColumn Property="m => m.UserName"/>
+            <PropertyColumn Property="m => m.RoleName"/>
+            <PropertyColumn Property="m => m.UserKey"/>
+            <PropertyColumn Property="m => m.LockoutEnabled"/>
+            <TemplateColumn>
+                <CellTemplate>
+                    <MudStack Row="true">
+                        @if (context.Item.RoleName.ToUpper() != "ADMIN")
+                        {
+                            @if (context.Item.LockoutEnabled)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.LockOpen" Color="Color.Info" Variant="Variant.Filled" OnClick="() => UserLock(context.Item)"/>
+                            }
+                            else
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Lock" Color="Color.Error" Variant="Variant.Filled" OnClick="() => UserLock(context.Item)"/>
+                            }
+
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Filled" OnClick="() => this.Composite.Remove(context.Item)"/>                            
+                        }
+                    </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="User" pa/>
+        </PagerContent>
+    </MudDataGrid>
+</MudContainer>
+
+@inject IUserService UserService
+@code {
+    Secret _selectedItem;
+    MudDataGrid<User> _dataGrid;
+    UserSession _self;
+    protected override async Task OnViewInitializedAsync()
+    {
+        _self = await UserService.GetUserSession();
+    }
+
+    protected override void OnViewAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            this.Composite.SetUp(this._dataGrid);
+            this.Composite.Initialize();
+        }
+    }
+
+    async Task UserLock(User user)
+    {
+        await this.UserService.Lock(user.Id);
+        user.LockoutEnabled = !user.LockoutEnabled;
+    }
+}

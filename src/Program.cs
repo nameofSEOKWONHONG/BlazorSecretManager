@@ -61,6 +61,7 @@ builder.Services.AddMudComposite();
 builder.Services.AddControllers();
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISecretService, SecretService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
@@ -71,6 +72,7 @@ builder.Services.AddAuthenticationCore();
 builder.Services.AddScoped<CircuitHandler, CustomCircuitHandler>();
 
 builder.Services.AddScoped<ISecretComposite, SecretComposite>();
+builder.Services.AddScoped<IUserComposite, UserComposite>();
 
 builder.Services.AddHybridCache(options =>
 {
@@ -116,18 +118,18 @@ await using (var scope = app.Services.CreateAsyncScope())
     #if DEBUG
 
     await context.Database.MigrateAsync();
+    
+    await context.Database.ExecuteSqlAsync($"delete from Menus");
+    await context.SaveChangesAsync();
+    
+    var menus = new List<Menu>();
+    menus.Add(new Menu() {Name = "Home", Description = "Home", Url = "/", Icon = Icons.Material.Filled.Home, Sort = 1});
+    menus.Add(new Menu() {Name = "Users", Description = "List of users", Url = "/users", Icon = Icons.Material.Filled.Person, Sort = 2});
+    menus.Add(new Menu() {Name = "Secrets", Description = "List of secrets", Url = "/secrets", Icon = Icons.Material.Filled.Security, Sort = 3});
+    await context.Menus.AddRangeAsync(menus);
+    await context.SaveChangesAsync();    
 
     #endif
-    
-    var any = await context.Menus.AnyAsync();
-    if (!any)
-    {
-        var menus = new List<Menu>();
-        menus.Add(new Menu() {Name = "Home", Description = "Home", Url = "/", Icon = Icons.Material.Filled.Home, Sort = 1});
-        menus.Add(new Menu() {Name = "Secrets", Description = "List of secrets", Url = "/secrets", Icon = Icons.Material.Filled.Security, Sort = 2});
-        await context.Menus.AddRangeAsync(menus);
-        await context.SaveChangesAsync();
-    }
 }
 
 app.Run();
