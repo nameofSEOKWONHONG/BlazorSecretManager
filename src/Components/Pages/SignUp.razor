@@ -2,12 +2,12 @@
 
 @using BlazorSecretManager.Components.Layout
 @using BlazorSecretManager.Infrastructure
-@using BlazorSecretManager.Services.Auth
 @using BlazorSecretManager.Services.Auth.Abstracts
 @using BlazorSecretManager.Services.Auth.Requests
 @using eXtensionSharp
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using MudComposite
 @using Color = MudBlazor.Color
 
 @rendermode InteractiveAuto
@@ -95,8 +95,14 @@
             return;
         }
 
-        var registered = await RegisterUser();
-        if (registered.xIsTrue())
+        var results = await RegisterUser();
+        if (results.Succeeded.xIsFalse())
+        {
+            Snackar.Add(results.Messages.xJoin(), Severity.Error);
+            return;
+        }
+        
+        if (results.Data.xIsTrue())
         {
             this.Snackar.Add("Registered.", Severity.Success);
             await Task.Delay(1000);
@@ -105,7 +111,7 @@
         }
     }
     
-    private async Task<bool> RegisterUser()
+    private async Task<Results<bool>> RegisterUser()
     {
         await Task.Delay(1);
 

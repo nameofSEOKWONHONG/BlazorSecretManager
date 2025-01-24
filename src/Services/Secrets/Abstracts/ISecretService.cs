@@ -1,4 +1,6 @@
 using BlazorSecretManager.Entities;
+using BlazorSecretManager.Infrastructure;
+using MudComposite;
 
 namespace BlazorSecretManager.Services.Secrets.Abstracts;
 
@@ -8,6 +10,6 @@ public interface ISecretService
     Task<Secret> GetSecret(int id);
     Task<int> CreateSecret(Secret secret);
     Task<bool> UpdateSecret(Secret secret);
-    Task<bool> DeleteSecret(int id);
+    Task<Results<bool>> DeleteSecret(int id);
     Task<string> GetSecretUrl(int id);
 }

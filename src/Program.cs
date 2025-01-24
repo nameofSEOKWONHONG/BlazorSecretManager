@@ -1,5 +1,6 @@
 using BlazorSecretManager;
 using BlazorSecretManager.Components;
+using BlazorSecretManager.Composites;
 using BlazorSecretManager.Entities;
 using BlazorSecretManager.Infrastructure;
 using BlazorSecretManager.Services;
@@ -17,6 +18,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using MudBlazor;
 using MudBlazor.Services;
+using MudComposite;
+
 #pragma warning disable EXTEXP0018
 
 var builder = WebApplication.CreateBuilder(args);
@@ -53,6 +56,7 @@ builder.Services.AddMudServices(config =>
     config.SnackbarConfiguration.ShowTransitionDuration = 500;
     config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
 });
+builder.Services.AddMudComposite();
 
 builder.Services.AddControllers();
 
@@ -65,6 +69,8 @@ builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, BlazorAuthorizationMiddlewareResultHandler>();
 builder.Services.AddAuthenticationCore();
 builder.Services.AddScoped<CircuitHandler, CustomCircuitHandler>();
+
+builder.Services.AddScoped<ISecretComposite, SecretComposite>();
 
 builder.Services.AddHybridCache(options =>
 {

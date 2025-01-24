@@ -2,13 +2,13 @@
 
 @using BlazorSecretManager.Components.Layout
 @using BlazorSecretManager.Infrastructure
-@using BlazorSecretManager.Services.Auth
 @using BlazorSecretManager.Services.Auth.Abstracts
 @using BlazorSecretManager.Services.Auth.Requests
 @using eXtensionSharp
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using MudComposite
 @using SecretManager
 @using Color = MudBlazor.Color
 
@@ -68,21 +68,26 @@
             return;
         }
 
-        var token = await AuthenticateUser(_loginRequest.Email, _loginRequest.Password);
-        if (token.xIsEmpty())
+        var results = await AuthenticateUser(_loginRequest.Email, _loginRequest.Password);
+        if (results.Succeeded.xIsFalse())
+        {
+            Snackbar.Add(results.Messages.xJoin(), Severity.Error);
+        }
+        
+        if (results.Data.xIsEmpty())
         {
             Snackbar.Add("request administrator");
             return;
         }
 
         // 확장 함수를 통해 토큰 암호화 후 localStorage에 저장
-        await ProtectedSessionStore.SetAsync(Constants.JwtCacheKey, token);
-        _authStateProvider.NotifyUserAuthentication(token);
+        await ProtectedSessionStore.SetAsync(Constants.JwtCacheKey, results.Data);
+        _authStateProvider.NotifyUserAuthentication(results.Data);
         StateHasChanged();
         _navigationManager.NavigateTo("/", true);
     }
     
-    private async Task<string> AuthenticateUser(string email, string password)
+    private async Task<Results<string>> AuthenticateUser(string email, string password)
     {
         await Task.Delay(1);
 

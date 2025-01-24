@@ -1,7 +1,9 @@
 ﻿using BlazorSecretManager.Entities;
+using BlazorSecretManager.Infrastructure;
 using BlazorSecretManager.Services.Secrets.Abstracts;
 using eXtensionSharp;
 using Microsoft.EntityFrameworkCore;
+using MudComposite;
 
 namespace BlazorSecretManager.Services.Secrets;
 
@@ -62,12 +64,14 @@ public class SecretService : ISecretService
         return await _dbContext.SaveChangesAsync() > 0;
     }
 
-    public async Task<bool> DeleteSecret(int id)
+    public async Task<Results<bool>> DeleteSecret(int id)
     {
         var exists = await _dbContext.Secrets.FirstOrDefaultAsync(x => x.Id == id);
-        if (exists.xIsEmpty()) return false;
+        if (exists.xIsEmpty()) return await Results<bool>.FailAsync("Secret not found");
         _dbContext.Secrets.Remove(exists);
-        return await _dbContext.SaveChangesAsync() > 0;
+        await _dbContext.SaveChangesAsync();
+        
+        return await Results<bool>.SuccessAsync();
     }
 
     public async Task<string> GetSecretUrl(int id)
