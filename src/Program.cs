@@ -30,6 +30,18 @@ app.UseMudSecretManager();
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
+    #if SQLITE
+    if (!Path.Exists("./data"))
+    {
+        Directory.CreateDirectory("./data");
+    }
+    
+    if (!File.Exists("./data/app.db"))
+    {
+        File.Create("./data/app.db");
+    }    
+    #endif
+    
     var initializer = scope.ServiceProvider.GetRequiredService<ProgramInitializer>();
     await initializer.InitializeAsync();
 }

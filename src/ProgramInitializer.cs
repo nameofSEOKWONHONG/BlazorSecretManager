@@ -20,10 +20,16 @@ public class ProgramInitializer
         await _dbContext.Database.ExecuteSqlAsync($"delete from Menus");
         await _dbContext.SaveChangesAsync();
     
-        var menus = new List<Menu>();
-        menus.Add(new Menu() {Name = "Home", Description = "Home", Url = "/", Icon = Icons.Material.Filled.Home, Sort = 1});
-        menus.Add(new Menu() {Name = "Users", Description = "List of users", Url = "/users", Icon = Icons.Material.Filled.Person, Sort = 2});
-        menus.Add(new Menu() {Name = "Secrets", Description = "List of secrets", Url = "/secrets", Icon = Icons.Material.Filled.Security, Sort = 3});
+        var menus = new List<Menu>
+        {
+            new Menu() { Name = "Home", Description = "Home", Url = "/", Icon = Icons.Material.Filled.Home, Sort = 1 },
+            new Menu()
+            {
+                Name = "Users", Description = "List of users", Url = "/users", Icon = Icons.Material.Filled.Person,
+                Sort = 2
+            },
+            new Menu() {Name = "Secrets", Description = "List of secrets", Url = "/secrets", Icon = Icons.Material.Filled.Security, Sort = 3}
+        };
         await _dbContext.Menus.AddRangeAsync(menus);
         await _dbContext.SaveChangesAsync();
     }

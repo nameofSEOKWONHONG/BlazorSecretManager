@@ -36,14 +36,28 @@ public static class DependencyInjection
         var configuration = config();
 
         #if DEBUG
-        var connectionString = configuration.GetConnectionString("DefaultConnection") ??
+        var connectionString = configuration.GetConnectionString("DEFAULT_CONNECTION") ??
                                throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         #else
-        var connectionString = Environment.GetEnvironmentVariable("SQLITE_CONNECTION") ??
+        var connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION") ??
                                throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         #endif
+        
+        #if MSSQL
         services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlite(connectionString));
+            options.UseSqlServer(connectionString);        
+        #endif
+        
+        #if SQLITE
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseSqlite(connectionString));        
+        #endif
+
+        #if POSTGRESQL
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseNpgsql(connectionString));        
+        #endif
+
         services.AddIdentity<User, IdentityRole>()
             .AddEntityFrameworkStores<AppDbContext>()
             ;
