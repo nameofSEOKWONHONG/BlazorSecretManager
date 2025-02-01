@@ -88,8 +88,8 @@ public class AwsSecretManagerLoader : IKeyValueLoader, IKeyValueLoopStarter
 - [ ] 계정 승인
 - [ ] 계정 거절
 - [ ] 계정간 알람
-- [ ] 계정 권한
-- [ ] 계정 잠금
+- [x] 계정 권한
+- [x] 계정 잠금
 - [ ] 계정 삭제 및 탈퇴
 - [x] SECRET 조회
 - [x] SECRET 저장
@@ -98,10 +98,10 @@ public class AwsSecretManagerLoader : IKeyValueLoader, IKeyValueLoopStarter
 - [x] SECRET URL 발급
 - [x] SECRET 발급 URL 조회
 - [ ] SECRET 키 재생성
-- [ ] 조회 최적화
 - [ ] 캐시
 - [ ] SECRET 타입 형식화
 - [ ] MudComposite 적용 (ViewModel Library [MudComposite](https://github.com/nameofSEOKWONHONG/MudComposite))
+- [ ] 암호화
 
 ## 초기 설정
 1. root 기준, Data 폴더 생성 및 app.db 파일 생성. (txt파일로 생성 가능.)

@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using BlazorSecretManager.Components;
 using BlazorSecretManager.Composites;
 using BlazorSecretManager.Entities;
+using BlazorSecretManager.Hubs;
 using BlazorSecretManager.Infrastructure;
 using BlazorSecretManager.Services.Auth;
 using BlazorSecretManager.Services.Auth.Abstracts;
@@ -107,6 +108,8 @@ public static class DependencyInjection
         });
 
         services.AddTransient<ProgramInitializer>();
+        
+        services.AddSignalR();
     }
 
     public static void UseMudSecretManager(this WebApplication app)
@@ -131,5 +134,8 @@ public static class DependencyInjection
         app.MapStaticAssets();
         app.MapRazorComponents<App>()
             .AddInteractiveServerRenderMode();
+        
+        app.MapHub<ChatHub>("/chathub");
+
     }
 }

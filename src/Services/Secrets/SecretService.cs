@@ -31,15 +31,23 @@ public class SecretService : ISecretService
         return new ValueTuple<int, List<Secret>>(total, list);
     }
 
-    public async Task<Secret> GetSecret(int id)
+    public async Task<Results<Secret>> GetSecret(int id)
     {
-        return await _dbContext.Secrets.AsNoTracking().FirstAsync(x => x.Id == id);
+        var item = await _dbContext.Secrets.AsNoTracking().FirstAsync(x => x.Id == id);
+        return await Results<Secret>.SuccessAsync(item);
     }
     
-    public async Task<int> CreateSecret(Secret secret)
+    public async Task<Results<int>> AddOrUpdate(Secret secret)
     {
+        if(secret.xIsEmpty()) await Results<int>.FailAsync("secret is empty");
+        if (secret.Id > 0)
+        {
+            await UpdateSecret(secret);
+            return await Results<int>.SuccessAsync(secret.Id);
+        }
+        
         var exists = await _dbContext.Secrets.FirstOrDefaultAsync(x => x.Id == secret.Id);
-        if (exists.xIsNotEmpty()) return 0;
+        if (exists.xIsNotEmpty()) return await Results<int>.FailAsync("secret already exists");
         
         secret.SecretKey = Guid.NewGuid().ToString("N");
         secret.CreatedAt = DateTime.Now;
@@ -47,7 +55,7 @@ public class SecretService : ISecretService
         await _dbContext.Secrets.AddAsync(secret);
         await _dbContext.SaveChangesAsync();
         
-        return secret.Id;
+        return await Results<int>.SuccessAsync(secret.Id);
     }
 
     public async Task<bool> UpdateSecret(Secret secret)

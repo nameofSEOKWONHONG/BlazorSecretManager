@@ -1,5 +1,7 @@
+using BlazorSecretManager.Components.Dialogs;
 using BlazorSecretManager.Entities;
 using BlazorSecretManager.Services.Secrets.Abstracts;
+using eXtensionSharp;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using MudComposite.ViewComponents;
@@ -39,5 +41,30 @@ public class SecretComposite : MudDataGridComposite<Secret, SecretSearchModel>, 
             };
         };
         this.OnRemove = async item => await _service.DeleteSecret(item.Id);
+        this.OnSaveBefore = async item =>
+        {
+            var parameters = new DialogParameters()
+            {
+                { "Secret", item }
+            };
+            var options = new DialogOptions()
+            {
+                FullWidth = true,
+                MaxWidth = MaxWidth.Medium
+            };
+            var title = string.Empty;
+            if (item.Id > 0) title = "Modify";
+            else title = "Create";
+            var dlg = await this.DialogService.ShowAsync<SecretDialog>(title, parameters, options);
+            var result = await dlg.Result;
+            if (!result.Canceled)
+            {
+                return result.Data.xAs<Secret>();
+            }
+
+            return null;
+        };        
+        this.OnSave = async item => await _service.AddOrUpdate(item);
+        this.OnSaveAfter = null;
     }
 }
