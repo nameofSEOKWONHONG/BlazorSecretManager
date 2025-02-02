@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using BlazorSecretManager.Components;
-using BlazorSecretManager.Composites;
+using BlazorSecretManager.Components.Pages.Secret.ViewModels;
+using BlazorSecretManager.Components.Pages.User.ViewModels;
 using BlazorSecretManager.Entities;
 using BlazorSecretManager.Hubs;
 using BlazorSecretManager.Infrastructure;
@@ -90,8 +91,8 @@ public static class DependencyInjection
         services.AddAuthenticationCore();
         services.AddScoped<CircuitHandler, CustomCircuitHandler>();
 
-        services.AddScoped<ISecretComposite, SecretComposite>();
-        services.AddScoped<IUserComposite, UserComposite>();
+        services.AddScoped<ISecretListViewModel, SecretListViewModel>();
+        services.AddScoped<IUserListViewModel, UserListViewModel>();
 
         services.AddHybridCache(options =>
         {

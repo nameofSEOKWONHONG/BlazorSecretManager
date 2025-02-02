@@ -1,6 +1,5 @@
 using BlazorSecretManager;
 using BlazorSecretManager.Components;
-using BlazorSecretManager.Composites;
 using BlazorSecretManager.Entities;
 using BlazorSecretManager.Infrastructure;
 using BlazorSecretManager.Services;

@@ -1,28 +1,16 @@
-using BlazorSecretManager.Entities;
 using BlazorSecretManager.Services.Auth;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using MudComposite;
 using MudComposite.ViewComponents.Composites.ListView;
 
-namespace BlazorSecretManager.Composites;
+namespace BlazorSecretManager.Components.Pages.User.ViewModels;
 
-public class UserSearchModel
-{
-    public string Email { get; set; }
-    public string Name { get; set; }
-}
-
-public interface IUserComposite : IMudDataGridComposite<User, UserSearchModel>
-{
-    
-}
-
-public class UserComposite : MudDataGridComposite<User, UserSearchModel>, IUserComposite
+public class UserListViewModel : MudDataGridViewModel<Entities.User, UserSearchModel>, IUserListViewModel
 {
     private readonly IUserService _userService;
 
-    public UserComposite(IDialogService dialogService, ISnackbar snackbar, NavigationManager navigationManager,
+    public UserListViewModel(IDialogService dialogService, ISnackbar snackbar, NavigationManager navigationManager,
         IUserService userService) : base(dialogService, snackbar, navigationManager)
     {
         _userService = userService;
@@ -34,7 +22,7 @@ public class UserComposite : MudDataGridComposite<User, UserSearchModel>, IUserC
         {
             var result = await _userService.GetUsers(this.SearchModel.Email, this.SearchModel.Name, state.Page,
                 state.PageSize);
-            return new GridData<User>()
+            return new GridData<Entities.User>()
             {
                 TotalItems = result.TotalCount,
                 Items = result.Datum

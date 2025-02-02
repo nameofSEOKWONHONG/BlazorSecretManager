@@ -1,37 +1,35 @@
 @page "/users"
-
-@using BlazorSecretManager.Composites
+@using BlazorSecretManager.Components.Pages.User.ViewModels
 @using BlazorSecretManager.Entities
 @using BlazorSecretManager.Services.Auth
 @using BlazorSecretManager.Services.Auth.Dtos
-@using Microsoft.AspNetCore.Authorization
 
-@inherits MudComposite.ViewComponents.MudListViewComponent<User, UserSearchModel, IUserComposite>
+@inherits MudComposite.ViewComponents.MudListViewComponent<User, UserSearchModel, IUserListViewModel>
 
 <PageTitle>Users</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge">
     <MudPaper Elevation="0" Style="padding: 10px;" >
-        <MudStack Class="d-flex justify-end flex-grow-1 gap-4" Row="true" @onkeypress="this.Composite.SearchKeyUp">
-            <MudTextField T="string" Label="@nameof(UserSearchModel.Email)" @bind-Value="this.Composite.SearchModel.Email" Clearable="true"/>
-            <MudTextField T="string" Label="@nameof(UserSearchModel.Name)" @bind-Value="this.Composite.SearchModel.Name" Clearable="true"/>
+        <MudStack Class="d-flex justify-end flex-grow-1 gap-4" Row="true" @onkeypress="this.ViewModel.SearchKeyUp">
+            <MudTextField T="string" Label="@nameof(UserSearchModel.Email)" @bind-Value="this.ViewModel.SearchModel.Email" Clearable="true"/>
+            <MudTextField T="string" Label="@nameof(UserSearchModel.Name)" @bind-Value="this.ViewModel.SearchModel.Name" Clearable="true"/>
         </MudStack>
         <br/>
         <MudPaper Class="d-flex justify-end flex-grow-1 gap-4" Elevation="0">
-            <MudButton StartIcon="@Icons.Material.Filled.Search" Variant="Variant.Filled" Size="Size.Small" Color="Color.Info" OnClick="this.Composite.ReloadServerData">Search</MudButton>
+            <MudButton StartIcon="@Icons.Material.Filled.Search" Variant="Variant.Filled" Size="Size.Small" Color="Color.Info" OnClick="this.ViewModel.ReloadServerData">Search</MudButton>
         </MudPaper>
     </MudPaper>
 
     <br/>
 
     <MudDataGrid T="User"
-                 ServerData="this.Composite.ServerReload"
+                 ServerData="this.ViewModel.ServerReload"
                  Dense="true"
                  Filterable="false"
                  SortMode="SortMode.None"
                  Height="960px"
-                 RowStyleFunc="this.Composite.RowStyleFunc"
-                 RowClick="this.Composite.DataGridRowClick"
+                 RowStyleFunc="this.ViewModel.RowStyleFunc"
+                 RowClick="this.ViewModel.DataGridRowClick"
                  @ref="_dataGrid">
         <ColGroup>
             <col style="width: 10%"/>
@@ -61,7 +59,7 @@
                                 <MudIconButton Icon="@Icons.Material.Filled.Lock" Color="Color.Error" Variant="Variant.Filled" OnClick="() => UserLock(context.Item)"/>
                             }
 
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Filled" OnClick="() => this.Composite.Remove(context.Item)"/>                            
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Filled" OnClick="() => this.ViewModel.Remove(context.Item)"/>                            
                         }
                     </MudStack>
                 </CellTemplate>
@@ -75,7 +73,7 @@
 
 @inject IUserService UserService
 @code {
-    Secret _selectedItem;
+    Entities.Secret _selectedItem;
     MudDataGrid<User> _dataGrid;
     UserSession _self;
     protected override async Task OnViewInitializedAsync()
@@ -87,8 +85,8 @@
     {
         if (firstRender)
         {
-            this.Composite.SetUp(this._dataGrid);
-            this.Composite.Initialize();
+            this.ViewModel.SetUp(this._dataGrid);
+            this.ViewModel.Initialize();
         }
     }
 

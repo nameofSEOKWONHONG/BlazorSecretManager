@@ -1,29 +1,17 @@
 using BlazorSecretManager.Components.Dialogs;
-using BlazorSecretManager.Entities;
 using BlazorSecretManager.Services.Secrets.Abstracts;
 using eXtensionSharp;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
-using MudComposite.ViewComponents;
 using MudComposite.ViewComponents.Composites.ListView;
 
-namespace BlazorSecretManager.Composites;
+namespace BlazorSecretManager.Components.Pages.Secret.ViewModels;
 
-public class SecretSearchModel
-{
-    public string Title { get; set; }
-    public string Description { get; set; }
-}
-
-public interface ISecretComposite : IMudDataGridComposite<Secret, SecretSearchModel>
-{
-}
-
-public class SecretComposite : MudDataGridComposite<Secret, SecretSearchModel>, ISecretComposite
+public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretSearchModel>, ISecretListViewModel
 {
     private readonly ISecretService _service;
 
-    public SecretComposite(IDialogService dialogService, ISnackbar snackbar, NavigationManager navigationManager,
+    public SecretListViewModel(IDialogService dialogService, ISnackbar snackbar, NavigationManager navigationManager,
         ISecretService service) : base(dialogService, snackbar, navigationManager)
     {
         _service = service;
@@ -34,7 +22,7 @@ public class SecretComposite : MudDataGridComposite<Secret, SecretSearchModel>, 
         this.OnServerReload = async state =>
         {
             var results  = await _service.GetSecrets(this.SearchModel.Title, this.SearchModel.Description, state.Page, state.PageSize);
-            return new GridData<Secret>()
+            return new GridData<Entities.Secret>()
             {
                 TotalItems = results.Item1,
                 Items = results.Item2,
@@ -59,7 +47,7 @@ public class SecretComposite : MudDataGridComposite<Secret, SecretSearchModel>, 
             var result = await dlg.Result;
             if (!result.Canceled)
             {
-                return result.Data.xAs<Secret>();
+                return result.Data.xAs<Entities.Secret>();
             }
 
             return null;
