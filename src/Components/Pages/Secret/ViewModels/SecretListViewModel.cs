@@ -2,6 +2,7 @@ using BlazorSecretManager.Components.Dialogs;
 using BlazorSecretManager.Services.Secrets.Abstracts;
 using eXtensionSharp;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MudBlazor;
 using MudComposite.ViewComponents.Composites.ListView;
 
@@ -9,11 +10,14 @@ namespace BlazorSecretManager.Components.Pages.Secret.ViewModels;
 
 public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretSearchModel>, ISecretListViewModel
 {
+    private readonly IJSRuntime _jsRuntime;
     private readonly ISecretService _service;
 
     public SecretListViewModel(IDialogService dialogService, ISnackbar snackbar, NavigationManager navigationManager,
+        IJSRuntime jsRuntime,
         ISecretService service) : base(dialogService, snackbar, navigationManager)
     {
+        _jsRuntime = jsRuntime;
         _service = service;
     }
 
@@ -49,10 +53,31 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
             {
                 return result.Data.xAs<Entities.Secret>();
             }
-
+        
             return null;
         };        
         this.OnSave = async item => await _service.AddOrUpdate(item);
         this.OnSaveAfter = null;
+        this.OnClick = async (id, obj) =>
+        {
+            if (id == "test")
+            {
+                if (this.SelectedItem.xIsEmpty())
+                {
+                    await this.DialogService.ShowMessageBox(id, "selected item is empty");    
+                }
+                else
+                {
+                    await this.DialogService.ShowMessageBox(id, $"item title: {this.SelectedItem.Title}");    
+                }
+            }
+            else if (id == "getUrl")
+            {
+                var item = obj.xAs<Entities.Secret>();
+                var url = await this._service.GetSecretUrl(item.Id);
+                await _jsRuntime.InvokeVoidAsync("copyToClipboard", url);
+                SnackBar.Add("The URL has been copied", Severity.Success);
+            }
+        };
     }
 }
