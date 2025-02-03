@@ -19,14 +19,7 @@
 <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)"/>
 <script src="_framework/blazor.web.js"></script>
 <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-<script>
-    window.copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text).then(
-            () => console.log("Copied to clipboard"),
-            (err) => console.error("Failed to copy text to clipboard", err)
-        );
-    };
-</script>
+<script src="window.js"></script>
 </body>
 
 </html>

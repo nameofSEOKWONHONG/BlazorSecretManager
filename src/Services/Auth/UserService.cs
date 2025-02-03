@@ -1,11 +1,11 @@
 using System.Security.Claims;
 using BlazorSecretManager.Entities;
-using BlazorSecretManager.Services.Auth.Dtos;
 using eXtensionSharp;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.EntityFrameworkCore;
 using MudComposite;
+using MudComposite.Base;
 using SecretManager;
 
 namespace BlazorSecretManager.Services.Auth;
@@ -16,7 +16,6 @@ public interface IUserService
     Task<Results<User>> GetUser(string id);
     Task<Results<bool>> Remove(string id);
     Task<Results<bool>> Lock(string id);
-    Task<UserSession> GetUserSession();
 }
 
 public class UserService : IUserService
@@ -62,25 +61,5 @@ public class UserService : IUserService
         _dbContext.Users.Update(user);
         await _dbContext.SaveChangesAsync();
         return await Results<bool>.SuccessAsync();
-    }
-
-    public async Task<UserSession> GetUserSession()
-    {
-        var state = await _provider.GetAuthenticationStateAsync();
-        var userId = state.User.Claims.First(m => m.Type == ClaimTypes.NameIdentifier).Value;
-        var email = state.User.Claims.First(m => m.Type == ClaimTypes.Email).Value;
-        var name = state.User.Claims.First(m => m.Type == ClaimTypes.Name).Value;
-        var key = state.User.Claims.First(m => m.Type == ClaimTypes.PrimarySid).Value;
-        var phone = state.User.Claims.First(m => m.Type == ClaimTypes.MobilePhone).Value;
-        var role = state.User.Claims.First(m => m.Type == ClaimTypes.Role).Value;
-        return new UserSession()
-        {
-            UserId = userId,
-            Email = email,
-            Name = name,
-            Role = role,
-            UserKey = key,
-            Phone = phone,
-        };        
     }
 }

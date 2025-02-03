@@ -2,6 +2,7 @@ using BlazorSecretManager.Components.Dialogs;
 using BlazorSecretManager.Services.Secrets.Abstracts;
 using eXtensionSharp;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 using MudBlazor;
 using MudComposite.ViewComponents.Composites.ListView;
@@ -13,16 +14,18 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
     private readonly IJSRuntime _jsRuntime;
     private readonly ISecretService _service;
 
-    public SecretListViewModel(IDialogService dialogService, ISnackbar snackbar, NavigationManager navigationManager,
+    public SecretListViewModel(IDialogService dialogService, ISnackbar snackbar, NavigationManager navigationManager, AuthenticationStateProvider authenticationStateProvider,
         IJSRuntime jsRuntime,
-        ISecretService service) : base(dialogService, snackbar, navigationManager)
+        ISecretService service) : base(dialogService, snackbar, navigationManager, authenticationStateProvider)
     {
         _jsRuntime = jsRuntime;
         _service = service;
     }
 
-    public override void Initialize()
+    public override void Initialize(MudDataGrid<Entities.Secret> dataGrid)
     {
+        base.Initialize(dataGrid);
+        
         this.OnServerReload = async state =>
         {
             var results  = await _service.GetSecrets(this.SearchModel.Title, this.SearchModel.Description, state.Page, state.PageSize);

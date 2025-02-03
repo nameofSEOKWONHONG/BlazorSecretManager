@@ -3,7 +3,6 @@ using BlazorSecretManager.Components;
 using BlazorSecretManager.Components.Pages.Secret.ViewModels;
 using BlazorSecretManager.Components.Pages.User.ViewModels;
 using BlazorSecretManager.Entities;
-using BlazorSecretManager.Hubs;
 using BlazorSecretManager.Infrastructure;
 using BlazorSecretManager.Services.Auth;
 using BlazorSecretManager.Services.Auth.Abstracts;
@@ -20,6 +19,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using MudBlazor;
 using MudBlazor.Services;
 using MudComposite;
+using MudComposite.Base;
 
 namespace BlazorSecretManager;
 
@@ -33,33 +33,22 @@ public static class DependencyInjection
         #endif 
         // Add services to the container.
         services.AddRazorComponents()
-            .AddInteractiveServerComponents();
+            .AddInteractiveServerComponents()
+            .AddCircuitOptions(options => options.DetailedErrors = true);
 
         var configuration = config();
 
         #if DEBUG
-        var connectionString = configuration.GetConnectionString("DEFAULT_CONNECTION") ??
+        var connectionString = configuration.GetConnectionString("DefaultConnection") ??
                                throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
         #else
-        var connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION") ??
+        var connectionString = Environment.GetEnvironmentVariable("SQLITE_CONNECTION") ??
                                throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         #endif
-        
-        #if MSSQL
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(connectionString);        
-        #endif
-        
-        #if SQLITE
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlite(connectionString));        
-        #endif
 
-        #if POSTGRESQL
         services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(connectionString));        
-        #endif
-
+            options.UseSqlite(connectionString));
         services.AddIdentity<User, IdentityRole>()
             .AddEntityFrameworkStores<AppDbContext>()
             ;
@@ -110,7 +99,7 @@ public static class DependencyInjection
 
         services.AddTransient<ProgramInitializer>();
         
-        services.AddSignalR();
+        services.AddScoped<CultureState>();
     }
 
     public static void UseMudSecretManager(this WebApplication app)
@@ -135,8 +124,5 @@ public static class DependencyInjection
         app.MapStaticAssets();
         app.MapRazorComponents<App>()
             .AddInteractiveServerRenderMode();
-        
-        app.MapHub<ChatHub>("/chathub");
-
     }
 }

@@ -1,23 +1,6 @@
+using System.Globalization;
 using BlazorSecretManager;
-using BlazorSecretManager.Components;
-using BlazorSecretManager.Entities;
-using BlazorSecretManager.Infrastructure;
-using BlazorSecretManager.Services;
-using BlazorSecretManager.Services.Auth;
-using BlazorSecretManager.Services.Auth.Abstracts;
-using BlazorSecretManager.Services.Menu;
-using BlazorSecretManager.Services.Menu.Abstracts;
-using BlazorSecretManager.Services.Secrets;
-using BlazorSecretManager.Services.Secrets.Abstracts;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server.Circuits;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
-using MudBlazor;
-using MudBlazor.Services;
-using MudComposite;
+using Microsoft.AspNetCore.Localization;
 
 #pragma warning disable EXTEXP0018
 
@@ -27,20 +10,25 @@ builder.Services.AddMudSecretManager(() => builder.Configuration);
 var app = builder.Build();
 app.UseMudSecretManager();
 
+// 지원할 문화권 목록 설정
+// var supportedCultures = new[]
+// {
+//     new CultureInfo("en-US"),
+//     new CultureInfo("ko-KR"),
+// };
+//
+// // 요청된 문화권을 처리하는 미들웨어 추가
+// var localizationOptions = new RequestLocalizationOptions
+// {
+//     DefaultRequestCulture = new RequestCulture("ko-KR"), // 기본 문화권 설정
+//     SupportedCultures = supportedCultures,               // 지원할 문화권 목록 (데이터 형식 적용)
+//     SupportedUICultures = supportedCultures              // 지원할 UI 문화권 목록 (리소스 적용)
+// };
+//
+// app.UseRequestLocalization(localizationOptions);
+
 await using (var scope = app.Services.CreateAsyncScope())
 {
-    #if SQLITE
-    if (!Path.Exists("./data"))
-    {
-        Directory.CreateDirectory("./data");
-    }
-    
-    if (!File.Exists("./data/app.db"))
-    {
-        File.Create("./data/app.db");
-    }    
-    #endif
-    
     var initializer = scope.ServiceProvider.GetRequiredService<ProgramInitializer>();
     await initializer.InitializeAsync();
 }

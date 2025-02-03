@@ -2,14 +2,14 @@
 @using BlazorSecretManager.Components.Pages.User.ViewModels
 @using BlazorSecretManager.Entities
 @using BlazorSecretManager.Services.Auth
-@using BlazorSecretManager.Services.Auth.Dtos
+@using Microsoft.AspNetCore.Components.Rendering
 
 @inherits MudComposite.ViewComponents.MudListViewComponent<User, UserSearchModel, IUserListViewModel>
 
 <PageTitle>Users</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge">
-    <MudPaper Elevation="0" Style="padding: 10px;" >
+    <MudPaper Elevation="0" Style="padding: 10px;">
         <MudStack Class="d-flex justify-end flex-grow-1 gap-4" Row="true" @onkeypress="this.ViewModel.SearchKeyUp">
             <MudTextField T="string" Label="@nameof(UserSearchModel.Email)" @bind-Value="this.ViewModel.SearchModel.Email" Clearable="true"/>
             <MudTextField T="string" Label="@nameof(UserSearchModel.Name)" @bind-Value="this.ViewModel.SearchModel.Name" Clearable="true"/>
@@ -20,6 +20,15 @@
         </MudPaper>
     </MudPaper>
 
+    <br/>
+    <div class="d-flex">
+        @DynamicForm
+    </div>
+    <br/>
+    <div class="d-flex">
+        <input type="text" @bind-value="@this.ViewModel.SearchModel.Email"/>
+        <input type="text" @bind-value="@this.ViewModel.SearchModel.Name"/>        
+    </div>
     <br/>
 
     <MudDataGrid T="User"
@@ -48,18 +57,18 @@
             <TemplateColumn>
                 <CellTemplate>
                     <MudStack Row="true">
-                        @if (context.Item.RoleName.ToUpper() != "ADMIN")
+                        @if (this.UserSession.Role.ToUpper() == "ADMIN")
                         {
                             @if (context.Item.LockoutEnabled)
                             {
-                                <MudIconButton Icon="@Icons.Material.Filled.LockOpen" Color="Color.Info" Variant="Variant.Filled" OnClick="() => UserLock(context.Item)"/>
+                                <MudIconButton Icon="@Icons.Material.Filled.LockOpen" Color="Color.Info" Variant="Variant.Filled" OnClick="@(() => this.ViewModel.Click("lock", context.Item))"/>
                             }
                             else
                             {
-                                <MudIconButton Icon="@Icons.Material.Filled.Lock" Color="Color.Error" Variant="Variant.Filled" OnClick="() => UserLock(context.Item)"/>
+                                <MudIconButton Icon="@Icons.Material.Filled.Lock" Color="Color.Error" Variant="Variant.Filled" OnClick="@(() => this.ViewModel.Click("lock", context.Item))"/>
                             }
 
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Filled" OnClick="() => this.ViewModel.Remove(context.Item)"/>                            
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Filled" OnClick="() => this.ViewModel.Remove(context.Item)"/>
                         }
                     </MudStack>
                 </CellTemplate>
@@ -71,28 +80,55 @@
     </MudDataGrid>
 </MudContainer>
 
-@inject IUserService UserService
 @code {
-    Entities.Secret _selectedItem;
+    private RenderFragment DynamicForm;
     MudDataGrid<User> _dataGrid;
-    UserSession _self;
-    protected override async Task OnViewInitializedAsync()
+    protected override void OnViewInitialized()
     {
-        _self = await UserService.GetUserSession();
+        
     }
 
     protected override void OnViewAfterRender(bool firstRender)
     {
         if (firstRender)
         {
-            this.ViewModel.SetUp(this._dataGrid);
-            this.ViewModel.Initialize();
-        }
-    }
+            this.ViewModel.Initialize(this._dataGrid);
+            DynamicForm = builder =>
+            {
+                builder.OpenElement(0, "div");
+                builder.AddAttribute(1, "style", "padding: 10px; border: 1px solid #ccc;");
 
-    async Task UserLock(User user)
-    {
-        await this.UserService.Lock(user.Id);
-        user.LockoutEnabled = !user.LockoutEnabled;
+                builder.OpenElement(2, "label");
+                builder.AddContent(3, "Email: ");
+                builder.CloseElement(); // label 닫기
+
+                builder.OpenElement(4, "input");
+                builder.AddAttribute(5, "type", "text");
+                builder.AddAttribute(6, "value", this.ViewModel.SearchModel.Email);
+                builder.AddAttribute(7, "oninput", EventCallback.Factory.Create<ChangeEventArgs>(this, e => this.ViewModel.SearchModel.Email = e.Value?.ToString()));
+                builder.CloseElement(); // input 닫기
+
+                builder.OpenElement(7, "br");
+                builder.CloseElement(); // br 닫기
+
+                builder.OpenElement(8, "label");
+                builder.AddContent(9, "Name: ");
+                builder.CloseElement(); // label 닫기
+
+                builder.OpenElement(10, "input");
+                builder.AddAttribute(11, "type", "text");
+                builder.CloseElement(); // input 닫기
+
+                builder.OpenElement(12, "br");
+                builder.CloseElement(); // br 닫기
+
+                builder.OpenElement(13, "button");
+                builder.AddAttribute(14, "onclick", EventCallback.Factory.Create(this, () => this.ViewModel.ReloadServerData()));
+                builder.AddContent(15, "Search");
+                builder.CloseElement(); // button 닫기
+
+                builder.CloseElement(); // div 닫기
+            };
+        }
     }
 }

@@ -2,6 +2,7 @@
 using BlazorSecretManager.Infrastructure;
 using BlazorSecretManager.Services.Secrets.Abstracts;
 using eXtensionSharp;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using MudComposite;
 
@@ -36,32 +37,15 @@ public class SecretService : ISecretService
         var item = await _dbContext.Secrets.AsNoTracking().FirstAsync(x => x.Id == id);
         return await Results<Secret>.SuccessAsync(item);
     }
-    
+
     public async Task<Results<int>> AddOrUpdate(Secret secret)
     {
-        if(secret.xIsEmpty()) await Results<int>.FailAsync("secret is empty");
-        if (secret.Id > 0)
+        var exists = await _dbContext.Secrets.FirstOrDefaultAsync(x => x.Id == secret.Id);
+        if (exists.xIsEmpty())
         {
-            await UpdateSecret(secret);
-            return await Results<int>.SuccessAsync(secret.Id);
+            var result = await CreateSecret(secret);
+            return await Results<int>.SuccessAsync(result);
         }
-        
-        var exists = await _dbContext.Secrets.FirstOrDefaultAsync(x => x.Id == secret.Id);
-        if (exists.xIsNotEmpty()) return await Results<int>.FailAsync("secret already exists");
-        
-        secret.SecretKey = Guid.NewGuid().ToString("N");
-        secret.CreatedAt = DateTime.Now;
-
-        await _dbContext.Secrets.AddAsync(secret);
-        await _dbContext.SaveChangesAsync();
-        
-        return await Results<int>.SuccessAsync(secret.Id);
-    }
-
-    public async Task<bool> UpdateSecret(Secret secret)
-    {
-        var exists = await _dbContext.Secrets.FirstOrDefaultAsync(x => x.Id == secret.Id);
-        if (exists.xIsEmpty()) return false;
         
         exists.Title = secret.Title.Trim();
         exists.Description = secret.Description.Trim();
@@ -69,8 +53,25 @@ public class SecretService : ISecretService
         exists.UpdatedAt = DateTime.Now;
         
         _dbContext.Secrets.Update(exists);
-        return await _dbContext.SaveChangesAsync() > 0;
+        await _dbContext.SaveChangesAsync();
+
+        return await Results<int>.SuccessAsync(exists.Id);
     }
+
+    public async Task<int> CreateSecret(Secret secret)
+    {
+        var exists = await _dbContext.Secrets.FirstOrDefaultAsync(x => x.Id == secret.Id);
+        if (exists.xIsNotEmpty()) return 0;
+        
+        secret.SecretKey = Guid.NewGuid().ToString("N");
+        secret.CreatedAt = DateTime.Now;
+
+        await _dbContext.Secrets.AddAsync(secret);
+        await _dbContext.SaveChangesAsync();
+        
+        return secret.Id;
+    }
+
 
     public async Task<Results<bool>> DeleteSecret(int id)
     {
