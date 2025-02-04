@@ -22,7 +22,7 @@ public class AuthService : IAuthService
 
     public async Task<Results<string>> SignIn(string email, string password)
     {
-        var user = await _userRepository.GetUser(email);
+        var user = await _userRepository.GetUserByEmail(email);
         if (user.xIsEmpty()) return await Results<string>.FailAsync("User does not exist");
         
         var valid = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash!, password);
@@ -37,7 +37,7 @@ public class AuthService : IAuthService
     public async Task<Results<bool>> SignUp(RegisterRequest request)
     {
         if (request.Password != request.ConfirmPassword) return await Results<bool>.FailAsync("Passwords do not match");
-        var exists = await _userRepository.GetUser(request.Email);
+        var exists = await _userRepository.GetUserByEmail(request.Email);
         
         if (exists.xIsNotEmpty()) return await Results<bool>.FailAsync("User already exists");
 

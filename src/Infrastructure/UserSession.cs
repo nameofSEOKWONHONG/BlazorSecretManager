@@ -10,4 +10,5 @@ public class UserSession
     public string Role { get; set; }
     public string UserKey { get; set; }
     public string Phone { get; set; }
+    public string ConnectionId { get; set; }
 }

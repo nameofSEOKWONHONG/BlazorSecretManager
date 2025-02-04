@@ -30,7 +30,12 @@ public class UserRepository : IUserRepository
         return true;
     }
 
-    public async Task<User> GetUser(string email)
+    public async Task<User> GetUser(string id)
+    {
+        return await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id);
+    }
+
+    public async Task<User> GetUserByEmail(string email)
     {
         return await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(m => m.Email == email);
     }

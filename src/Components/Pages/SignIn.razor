@@ -1,5 +1,7 @@
 @page "/signin"
 
+@using System.IdentityModel.Tokens.Jwt
+@using System.Security.Claims
 @using BlazorSecretManager.Components.Layout
 @using BlazorSecretManager.Infrastructure
 @using BlazorSecretManager.Services.Auth.Abstracts
@@ -7,6 +9,7 @@
 @using eXtensionSharp
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Server.Circuits
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using MudComposite
 @using SecretManager
@@ -53,6 +56,8 @@
 @inject ISnackbar Snackbar;
 @inject ProtectedSessionStorage ProtectedSessionStore;
 @inject IAuthService AuthService;
+@inject IUserConnectionService UserConnectionService;
+@inject CircuitHandler CircuitHandler;
 
 @code {
     [CascadingParameter] Task<AuthenticationState> AuthState { get; set; }
@@ -68,25 +73,51 @@
             return;
         }
 
-        var results = await AuthenticateUser(_loginRequest.Email, _loginRequest.Password);
-        if (results.Succeeded.xIsFalse())
+        var result = await AuthenticateUser(_loginRequest.Email, _loginRequest.Password);
+        if (result.Succeeded.xIsFalse())
         {
-            Snackbar.Add(results.Messages.xJoin(), Severity.Error);
+            Snackbar.Add(result.Messages.xJoin(), Severity.Error);
             Snackbar.Add("request administrator", Severity.Info);
             return;
         }
         
-        if (results.Data.xIsEmpty())
+        if (result.Data.xIsEmpty())
         {
             Snackbar.Add("request administrator", Severity.Info);
             return;
         }
-
+        
+        var jwtToken = new JwtSecurityToken(result.Data);
+        var identity = new ClaimsIdentity(jwtToken.Claims, Constants.JwtCacheKey);
+        var user = new ClaimsPrincipal(identity);
+        var userId = user.Claims.First(m => m.Type == ClaimTypes.NameIdentifier).Value;
+        var email = user.Claims.First(m => m.Type == ClaimTypes.Email).Value;
+        var name = user.Claims.First(m => m.Type == ClaimTypes.Name).Value;
+        var key = user.Claims.First(m => m.Type == ClaimTypes.PrimarySid).Value;
+        var phone = user.Claims.First(m => m.Type == ClaimTypes.MobilePhone).Value;
+        var role = user.Claims.First(m => m.Type == ClaimTypes.Role).Value;
+        var session = new UserSession()
+        {
+            UserId = userId,
+            Email = email,
+            Name = name,
+            Phone = phone,
+            Role = role,
+            UserKey = key,
+            ConnectionId = CircuitHandler.xAs<CustomCircuitHandler>().ConnectionId
+        };
+        if (UserConnectionService.AlreadyExists(userId))
+        {
+            Snackbar.Add("request administrator", Severity.Info);
+            return;
+        }
+        
+        UserConnectionService.AddUser(session);
         // 확장 함수를 통해 토큰 암호화 후 localStorage에 저장
-        await ProtectedSessionStore.SetAsync(Constants.JwtCacheKey, results.Data);
-        _authStateProvider.NotifyUserAuthentication(results.Data);
+        await ProtectedSessionStore.SetAsync(Constants.JwtCacheKey, result.Data);
+        _authStateProvider.NotifyUserAuthentication(user);
         StateHasChanged();
-        _navigationManager.NavigateTo("/", true);
+        _navigationManager.NavigateTo("/", false);
     }
     
     private async Task<Results<string>> AuthenticateUser(string email, string password)

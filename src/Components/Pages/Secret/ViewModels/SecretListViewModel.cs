@@ -1,9 +1,7 @@
 using BlazorSecretManager.Components.Dialogs;
 using BlazorSecretManager.Services.Secrets.Abstracts;
+using BlazorTrivialJs;
 using eXtensionSharp;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.JSInterop;
 using MudBlazor;
 using MudComposite.Base;
 using MudComposite.ViewComponents.Composites.ListView;
@@ -14,15 +12,15 @@ namespace BlazorSecretManager.Components.Pages.Secret.ViewModels;
 
 public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretSearchModel>, ISecretListViewModel
 {
-    private readonly IJSRuntime _jsRuntime;
     private readonly ISecretService _service;
+    private readonly ITrivialJs _trivialJs;
 
     public SecretListViewModel(MudViewModelItem mudViewModelItem,
-        IJSRuntime jsRuntime,
-        ISecretService service) : base(mudViewModelItem)
+        ISecretService service,
+        ITrivialJs trivialJs) : base(mudViewModelItem)
     {
-        _jsRuntime = jsRuntime;
         _service = service;
+        _trivialJs = trivialJs;
     }
 
     public override void Initialize(MudDataGrid<Entities.Secret> dataGrid)
@@ -81,7 +79,7 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
             {
                 var item = obj.xAs<Entities.Secret>();
                 var url = await this._service.GetSecretUrl(item.Id);
-                await _jsRuntime.InvokeVoidAsync("copyToClipboard", url);
+                await _trivialJs.CopyToClipboard(url);
                 this.MudViewModelItem.Snackbar.Add("The URL has been copied", Severity.Success);
             }
         };

@@ -11,3 +11,11 @@ window.copyToClipboard = (text) => {
         (err) => console.error("Failed to copy text to clipboard", err)
     );
 };
+
+function goBack() {
+    window.history.back();
+}
+
+function goForward() {
+    window.history.forward();
+} 

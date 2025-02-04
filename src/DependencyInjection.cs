@@ -10,6 +10,7 @@ using BlazorSecretManager.Services.Menu;
 using BlazorSecretManager.Services.Menu.Abstracts;
 using BlazorSecretManager.Services.Secrets;
 using BlazorSecretManager.Services.Secrets.Abstracts;
+using BlazorTrivialJs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
@@ -75,9 +76,10 @@ public static class DependencyInjection
         services.AddScoped<IMenuService, MenuService>();
         services.AddScoped<CustomAuthStateProvider>();
         services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
-        services.AddSingleton<IAuthorizationMiddlewareResultHandler, BlazorAuthorizationMiddlewareResultHandler>();
-        services.AddAuthenticationCore();
         services.AddScoped<CircuitHandler, CustomCircuitHandler>();
+        services.AddSingleton<IAuthorizationMiddlewareResultHandler, BlazorAuthorizationMiddlewareResultHandler>();
+        services.AddSingleton<IUserConnectionService, UserConnectionService>();
+        services.AddAuthenticationCore();
 
         services.AddScoped<ISecretListViewModel, SecretListViewModel>();
         services.AddScoped<IUserListViewModel, UserListViewModel>();
@@ -99,6 +101,7 @@ public static class DependencyInjection
         services.AddTransient<ProgramInitializer>();
         
         services.AddScoped<AppState>();
+        services.AddScoped<ITrivialJs, TrivialJs>();
     }
 
     public static void UseMudSecretManager(this WebApplication app)

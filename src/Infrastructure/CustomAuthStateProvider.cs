@@ -14,18 +14,23 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
     private readonly ProtectedSessionStorage _protectedSessionStore;
     private readonly IUserRepository _userRepository;
     private CircuitHandler _circuitHandler;
+    private readonly IUserConnectionService _userConnectionService;
+
     public CustomAuthStateProvider(ProtectedSessionStorage protectedSessionStore,
         IUserRepository userRepository,
-        CircuitHandler circuitHandler)
+        CircuitHandler circuitHandler,
+        IUserConnectionService userConnectionService)
     {
         _protectedSessionStore = protectedSessionStore;
         _userRepository = userRepository;
         _circuitHandler = circuitHandler;
+        _userConnectionService = userConnectionService;
     }
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        if (_circuitHandler.xAs<CustomCircuitHandler>().IsPrerendering.xIsFalse())
+        var circuitHandler = _circuitHandler.xAs<CustomCircuitHandler>();
+        if (circuitHandler.xAs<CustomCircuitHandler>().IsPrerendering.xIsFalse())
         {
             try
             {
@@ -44,7 +49,7 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
                 if (id.xIsNotEmpty())
                 {
                     var user = await _userRepository.GetUser(id);
-                    if (user.xIsNotEmpty())
+                    if (user.xIsEmpty())
                     {
                         await _protectedSessionStore.DeleteAsync(Constants.JwtCacheKey);
                         return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));                        
@@ -72,6 +77,15 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
         var authState = Task.FromResult(new AuthenticationState(user));
         NotifyAuthenticationStateChanged(authState);
         OnChange?.Invoke();
+    }
+
+    public void NotifyUserAuthentication(ClaimsPrincipal principal)
+    {
+        var identity = new ClaimsIdentity(principal.Claims, Constants.JwtCacheKey);
+        var user = new ClaimsPrincipal(identity);
+        var authState = Task.FromResult(new AuthenticationState(user));
+        NotifyAuthenticationStateChanged(authState);
+        OnChange?.Invoke();        
     }
 
     public void NotifyUserLogout()
