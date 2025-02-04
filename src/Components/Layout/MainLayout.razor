@@ -1,4 +1,5 @@
 ﻿@using System.Security.Claims
+@using BlazorSecretManager.Infrastructure
 @using eXtensionSharp
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
@@ -15,7 +16,7 @@
 @* Needed for snackbars *@
 <MudSnackbarProvider />
 
-<CascadingValue Value="CultureState" IsFixed="true">
+<CascadingValue Value="State" IsFixed="true">
     <AuthorizeView>
         <Authorized>
             <MudLayout>
@@ -39,8 +40,8 @@
                         </MudPopover>
                     </div>
                     <MudSpacer/>
-                    <MudMenu StartIcon="@Icons.Material.Filled.Language" Variant="Variant.Outlined" Style="margin: 10px;" Label="@CultureState.SupportedLanguage[CultureState.CurrentCulture]">
-                        @foreach (var item in CultureState.SupportedCultures)
+                    <MudMenu StartIcon="@Icons.Material.Filled.Language" Variant="Variant.Outlined" Style="margin: 10px;" Label="@AppState.SupportedLanguage[State.CurrentCulture]">
+                        @foreach (var item in AppState.SupportedCultures)
                         {
                             <MudMenuItem OnClick="@(() => ChangeCulture(item.Value.Name))">@item.Key</MudMenuItem>
                         }
@@ -93,7 +94,7 @@
 @inject ProtectedSessionStorage ProtectedSessionStorage
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
-@inject CultureState CultureState
+@inject AppState State
 @code {
 
     private bool _drawerOpen = true;
@@ -169,7 +170,7 @@
             if (currentCulture.Success.xIsFalse())
             {
                 var browserInfo = await this.JSRuntime.InvokeAsync<Dictionary<string, string>>("getBrowserInfo");
-                CultureState.CurrentCulture = browserInfo["language"];
+                State.CurrentCulture = browserInfo["language"];
             }   
         }
     }
@@ -269,9 +270,9 @@
 
     private async Task ChangeCulture(string obj)
     {
-        CultureState.CurrentCulture = obj;
+        State.CurrentCulture = obj;
         _popoverOpen = !_popoverOpen;
-        await ProtectedSessionStorage.SetAsync("CurrentCulture", CultureState.CurrentCulture);
+        await ProtectedSessionStorage.SetAsync("CurrentCulture", State.CurrentCulture);
         StateHasChanged();
     }
 

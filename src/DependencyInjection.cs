@@ -19,7 +19,6 @@ using Microsoft.Extensions.Caching.Hybrid;
 using MudBlazor;
 using MudBlazor.Services;
 using MudComposite;
-using MudComposite.Base;
 
 namespace BlazorSecretManager;
 
@@ -99,7 +98,7 @@ public static class DependencyInjection
 
         services.AddTransient<ProgramInitializer>();
         
-        services.AddScoped<CultureState>();
+        services.AddScoped<AppState>();
     }
 
     public static void UseMudSecretManager(this WebApplication app)

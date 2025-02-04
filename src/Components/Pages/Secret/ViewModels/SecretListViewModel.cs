@@ -5,18 +5,21 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 using MudBlazor;
+using MudComposite.Base;
 using MudComposite.ViewComponents.Composites.ListView;
 
 namespace BlazorSecretManager.Components.Pages.Secret.ViewModels;
+
+
 
 public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretSearchModel>, ISecretListViewModel
 {
     private readonly IJSRuntime _jsRuntime;
     private readonly ISecretService _service;
 
-    public SecretListViewModel(IDialogService dialogService, ISnackbar snackbar, NavigationManager navigationManager, AuthenticationStateProvider authenticationStateProvider,
+    public SecretListViewModel(MudViewModelItem mudViewModelItem,
         IJSRuntime jsRuntime,
-        ISecretService service) : base(dialogService, snackbar, navigationManager, authenticationStateProvider)
+        ISecretService service) : base(mudViewModelItem)
     {
         _jsRuntime = jsRuntime;
         _service = service;
@@ -50,7 +53,7 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
             var title = string.Empty;
             if (item.Id > 0) title = "Modify";
             else title = "Create";
-            var dlg = await this.DialogService.ShowAsync<SecretDialog>(title, parameters, options);
+            var dlg = await this.MudViewModelItem.DialogService.ShowAsync<SecretDialog>(title, parameters, options);
             var result = await dlg.Result;
             if (!result.Canceled)
             {
@@ -67,11 +70,11 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
             {
                 if (this.SelectedItem.xIsEmpty())
                 {
-                    await this.DialogService.ShowMessageBox(id, "selected item is empty");    
+                    await this.MudViewModelItem.DialogService.ShowMessageBox(id, "selected item is empty");    
                 }
                 else
                 {
-                    await this.DialogService.ShowMessageBox(id, $"item title: {this.SelectedItem.Title}");    
+                    await this.MudViewModelItem.DialogService.ShowMessageBox(id, $"item title: {this.SelectedItem.Title}");    
                 }
             }
             else if (id == "getUrl")
@@ -79,7 +82,7 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
                 var item = obj.xAs<Entities.Secret>();
                 var url = await this._service.GetSecretUrl(item.Id);
                 await _jsRuntime.InvokeVoidAsync("copyToClipboard", url);
-                SnackBar.Add("The URL has been copied", Severity.Success);
+                this.MudViewModelItem.Snackbar.Add("The URL has been copied", Severity.Success);
             }
         };
     }

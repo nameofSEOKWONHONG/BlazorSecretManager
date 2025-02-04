@@ -19,17 +19,17 @@
             <MudButton StartIcon="@Icons.Material.Filled.Search" Variant="Variant.Filled" Size="Size.Small" Color="Color.Info" OnClick="this.ViewModel.ReloadServerData">Search</MudButton>
         </MudPaper>
     </MudPaper>
-
+    
     <br/>
-    <div class="d-flex">
-        @DynamicForm
-    </div>
-    <br/>
-    <div class="d-flex">
-        <input type="text" @bind-value="@this.ViewModel.SearchModel.Email"/>
-        <input type="text" @bind-value="@this.ViewModel.SearchModel.Name"/>        
-    </div>
-    <br/>
+    @* <div class="d-flex"> *@
+    @*     @DynamicForm *@
+    @* </div> *@
+    @* <br/> *@
+    @* <div class="d-flex"> *@
+    @*     <input type="text" @bind-value="@this.ViewModel.SearchModel.Email"/> *@
+    @*     <input type="text" @bind-value="@this.ViewModel.SearchModel.Name"/>         *@
+    @* </div> *@
+    @* <br/> *@
 
     <MudDataGrid T="User"
                  ServerData="this.ViewModel.ServerReload"
@@ -39,7 +39,7 @@
                  Height="960px"
                  RowStyleFunc="this.ViewModel.RowStyleFunc"
                  RowClick="this.ViewModel.DataGridRowClick"
-                 @ref="_dataGrid">
+                 @ref="this.ViewModel.DataGrid">
         <ColGroup>
             <col style="width: 10%"/>
             <col style="width: 20%"/>
@@ -57,7 +57,7 @@
             <TemplateColumn>
                 <CellTemplate>
                     <MudStack Row="true">
-                        @if (this.UserSession.Role.ToUpper() == "ADMIN")
+                        @if (this.ViewModel.UserSession.Role.ToUpper() == "ADMIN")
                         {
                             @if (context.Item.LockoutEnabled)
                             {
@@ -81,54 +81,54 @@
 </MudContainer>
 
 @code {
-    private RenderFragment DynamicForm;
+    // private RenderFragment DynamicForm;
     MudDataGrid<User> _dataGrid;
     protected override void OnViewInitialized()
     {
         
     }
 
-    protected override void OnViewAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            this.ViewModel.Initialize(this._dataGrid);
-            DynamicForm = builder =>
-            {
-                builder.OpenElement(0, "div");
-                builder.AddAttribute(1, "style", "padding: 10px; border: 1px solid #ccc;");
-
-                builder.OpenElement(2, "label");
-                builder.AddContent(3, "Email: ");
-                builder.CloseElement(); // label 닫기
-
-                builder.OpenElement(4, "input");
-                builder.AddAttribute(5, "type", "text");
-                builder.AddAttribute(6, "value", this.ViewModel.SearchModel.Email);
-                builder.AddAttribute(7, "oninput", EventCallback.Factory.Create<ChangeEventArgs>(this, e => this.ViewModel.SearchModel.Email = e.Value?.ToString()));
-                builder.CloseElement(); // input 닫기
-
-                builder.OpenElement(7, "br");
-                builder.CloseElement(); // br 닫기
-
-                builder.OpenElement(8, "label");
-                builder.AddContent(9, "Name: ");
-                builder.CloseElement(); // label 닫기
-
-                builder.OpenElement(10, "input");
-                builder.AddAttribute(11, "type", "text");
-                builder.CloseElement(); // input 닫기
-
-                builder.OpenElement(12, "br");
-                builder.CloseElement(); // br 닫기
-
-                builder.OpenElement(13, "button");
-                builder.AddAttribute(14, "onclick", EventCallback.Factory.Create(this, () => this.ViewModel.ReloadServerData()));
-                builder.AddContent(15, "Search");
-                builder.CloseElement(); // button 닫기
-
-                builder.CloseElement(); // div 닫기
-            };
-        }
-    }
+    // protected override void OnViewAfterRender(bool firstRender)
+    // {
+    //     if (firstRender)
+    //     {
+    //         this.ViewModel.Initialize(this._dataGrid);
+    //         // DynamicForm = builder =>
+    //         // {
+    //         //     builder.OpenElement(0, "div");
+    //         //     builder.AddAttribute(1, "style", "padding: 10px; border: 1px solid #ccc;");
+    //         //
+    //         //     builder.OpenElement(2, "label");
+    //         //     builder.AddContent(3, "Email: ");
+    //         //     builder.CloseElement(); // label 닫기
+    //         //
+    //         //     builder.OpenElement(4, "input");
+    //         //     builder.AddAttribute(5, "type", "text");
+    //         //     builder.AddAttribute(6, "value", this.ViewModel.SearchModel.Email);
+    //         //     builder.AddAttribute(7, "oninput", EventCallback.Factory.Create<ChangeEventArgs>(this, e => this.ViewModel.SearchModel.Email = e.Value?.ToString()));
+    //         //     builder.CloseElement(); // input 닫기
+    //         //
+    //         //     builder.OpenElement(7, "br");
+    //         //     builder.CloseElement(); // br 닫기
+    //         //
+    //         //     builder.OpenElement(8, "label");
+    //         //     builder.AddContent(9, "Name: ");
+    //         //     builder.CloseElement(); // label 닫기
+    //         //
+    //         //     builder.OpenElement(10, "input");
+    //         //     builder.AddAttribute(11, "type", "text");
+    //         //     builder.CloseElement(); // input 닫기
+    //         //
+    //         //     builder.OpenElement(12, "br");
+    //         //     builder.CloseElement(); // br 닫기
+    //         //
+    //         //     builder.OpenElement(13, "button");
+    //         //     builder.AddAttribute(14, "onclick", EventCallback.Factory.Create(this, () => this.ViewModel.ReloadServerData()));
+    //         //     builder.AddContent(15, "Search");
+    //         //     builder.CloseElement(); // button 닫기
+    //         //
+    //         //     builder.CloseElement(); // div 닫기
+    //         // };
+    //     }
+    // }
 }
