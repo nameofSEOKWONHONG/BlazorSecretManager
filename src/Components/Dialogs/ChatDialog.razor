@@ -1,0 +1,50 @@
+@using BlazorSecretManager.Hubs.Dtos
+@using BlazorSecretManager.Services.Auth
+@using MudBlazor.Extensions.Helper
+<MudDialog>
+    <DialogContent>
+        <MudPaper Elevation="1" Style="margin: 20px; padding: 20px;">
+            <MudText Typo="Typo.caption">CHAT</MudText>
+            <br/>
+            <br/>
+            <MudStack Class="d-flex justify-end flex-grow-1 gap-4" Row="true">
+                <MudSelect T="string" @bind-Value="_email" Label="Email">
+                    @foreach (var item in ChatUserModels)
+                    {
+                        <MudSelectItem Value="item.Email">@item.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField T="string" Label="MSG" @bind-Value="_chatMessage"/>
+                @* <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Info" Variant="Variant.Filled" OnClick="SendMessage"/> *@
+            </MudStack>
+            <div id="chatContainer" style="height: 500px; overflow-y: auto;">
+                @foreach (var item in ChatMessages.ToList())
+                {
+                    <MudChat ChatPosition=item.Position Color=item.Color>
+                        <MudChatHeader Name="@item.Email" Time="@item.ReceivedDate" />
+                        <MudChatBubble>
+                            @item.Message
+                        </MudChatBubble>
+                    </MudChat>
+                }
+            </div>
+        </MudPaper>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+    void Submit() => MudDialog.CloseAnimatedIf(DialogResult.Ok(true));
+    void Cancel() => MudDialog.CancelAnimatedIf();
+    
+    [Parameter] public List<ChatMessage> ChatMessages { get; set; }
+    [Parameter] public List<ChatUserModel> ChatUserModels { get; set; }
+    
+    
+    string _email;
+    string _chatMessage;
+}

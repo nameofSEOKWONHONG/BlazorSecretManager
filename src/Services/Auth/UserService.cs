@@ -14,10 +14,18 @@ namespace BlazorSecretManager.Services.Auth;
 public interface IUserService
 {
     Task<PaginatedResult<User>> GetUsers(string email, string name, int pageNo, int pageSize);
+    Task<List<ChatUserModel>> GetUsers();
     Task<Results<User>> GetUser(string id);
     Task<Results<bool>> Remove(string id);
     Task<Results<bool>> Lock(string id);
     Task<UserSession> GetUserSession();
+}
+
+public class ChatUserModel
+{
+    public string Id { get; set; }
+    public string Email { get; set; }
+    public string Name { get; set; }
 }
 
 public class UserService : IUserService
@@ -40,6 +48,18 @@ public class UserService : IUserService
         var total = await query.CountAsync();
         var result = await query.Skip(pageNo * pageSize).Take(pageSize).ToListAsync();
         return await PaginatedResult<User>.SuccessAsync(result, total, pageNo, pageSize);
+    }
+
+    public async Task<List<ChatUserModel>> GetUsers()
+    {
+        var users = await _dbContext.Users.AsNoTracking().Select(m => new ChatUserModel()
+        {
+            Id = m.Id,
+            Email = m.Email,
+            Name = m.UserName
+        }).ToListAsync();
+
+        return users;
     }
 
     public async Task<Results<User>> GetUser(string id)

@@ -2,6 +2,7 @@ using BlazorSecretManager.Components.Dialogs;
 using BlazorSecretManager.Services.Secrets.Abstracts;
 using BlazorTrivialJs;
 using eXtensionSharp;
+using Microsoft.AspNetCore.SignalR.Client;
 using MudBlazor;
 using MudComposite.Base;
 using MudComposite.ViewComponents.Composites.ListView;
@@ -51,7 +52,7 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
             var title = string.Empty;
             if (item.Id > 0) title = "Modify";
             else title = "Create";
-            var dlg = await this.MudViewModelItem.DialogService.ShowAsync<SecretDialog>(title, parameters, options);
+            var dlg = await this.Utility.DialogService.ShowAsync<SecretDialog>(title, parameters, options);
             var result = await dlg.Result;
             if (!result.Canceled)
             {
@@ -68,11 +69,11 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
             {
                 if (this.SelectedItem.xIsEmpty())
                 {
-                    await this.MudViewModelItem.DialogService.ShowMessageBox(id, "selected item is empty");    
+                    await this.Utility.DialogService.ShowMessageBox(id, "selected item is empty");    
                 }
                 else
                 {
-                    await this.MudViewModelItem.DialogService.ShowMessageBox(id, $"item title: {this.SelectedItem.Title}");    
+                    await this.Utility.DialogService.ShowMessageBox(id, $"item title: {this.SelectedItem.Title}");    
                 }
             }
             else if (id == "getUrl")
@@ -80,7 +81,14 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
                 var item = obj.xAs<Entities.Secret>();
                 var url = await this._service.GetSecretUrl(item.Id);
                 await _trivialJs.CopyToClipboard(url);
-                this.MudViewModelItem.Snackbar.Add("The URL has been copied", Severity.Success);
+                this.Utility.Snackbar.Add("The URL has been copied", Severity.Success);
+            }
+            else if (id == "notice")
+            {
+                using var client = new HttpClient();
+                client.BaseAddress = new Uri(this.Utility.NavigationManager.BaseUri);
+                var res = await client.PostAsync("api/notice", null);
+                res.EnsureSuccessStatusCode();
             }
         };
     }

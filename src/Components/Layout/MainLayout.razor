@@ -1,9 +1,14 @@
 ﻿@using System.Security.Claims
+@using BlazorSecretManager.Hubs
+@using BlazorSecretManager.Hubs.Dtos
 @using BlazorSecretManager.Infrastructure
+@using BlazorSecretManager.Services.Auth
 @using BlazorTrivialJs
 @using eXtensionSharp
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
 @inherits LayoutComponentBase
 
 @* Required *@
@@ -40,6 +45,37 @@
                         </MudPopover>
                     </div>
                     <MudSpacer/>
+                    <MudBadge Color="Color.Secondary" Dot="true" Overlap="true" Visible="_noticeVisible">
+                        <MudMenu Icon="@Icons.Material.Outlined.Notifications" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopCenter" PopoverClass="docs-layout-menu-shadow" ListClass="pa-2 docs-menu-list" LockScroll="true" Dense="true">
+                            <div class="d-flex justify-space-between align-center px-2">
+                                <MudText Typo="Typo.subtitle2">Notifications</MudText>
+                                <MudButton Disabled="false" StartIcon="@Icons.Material.Filled.DoneAll" Variant="Variant.Text" Color="Color.Primary" Class="ml-16 mr-n2">Mark as read</MudButton>
+                            </div>
+                            @if (_noticeMessages.xIsNotEmpty())
+                            {
+                                @foreach (var item in _noticeMessages.Take(5))
+                                {
+                                    <MudBadge Color="Color.Secondary" Dot="true" Overlap="true" Visible="!item.IsRead" Style="display: inline;">
+                                        <MudMenuItem OnClick="@(() => NotificationClick(item))">
+                                            <MudText Typo="Typo.subtitle2">@item.Title</MudText>
+                                            <MudText Typo="Typo.body2">@($"{item.Content} • {item.PublishDate.ToShortDateString()}")</MudText>
+                                        </MudMenuItem>                                        
+                                    </MudBadge>
+                                    <MudDivider/>
+                                }
+                            }
+                            else
+                            {
+                                <div class="d-flex justify-center align-center px-2 py-8 relative">
+                                    <MudText Class="mud-text-secondary my-12">Nothing new :(</MudText>
+                                    <MudBlazorLogo Class="docs-logo-filter mx-16 absolute"/>
+                                </div>
+                            }
+                        </MudMenu>
+                    </MudBadge>
+                    <MudBadge Color="Color.Secondary" Dot="true" Overlap="true" Visible="_chatVisible">
+                        <MudButton StartIcon="@Icons.Material.Outlined.Chat" OnClick="ToggleChat">CHAT</MudButton>
+                    </MudBadge>
                     <MudMenu StartIcon="@Icons.Material.Filled.Language" Variant="Variant.Outlined" Style="margin: 10px;" Label="@AppState.SupportedLanguage[State.CurrentCulture]">
                         @foreach (var item in AppState.SupportedCultures)
                         {
@@ -75,13 +111,13 @@
                     </MudDrawerHeader>
                     <MudStack Row="false">
                         <MudPaper Elevation="1" Style="margin: 20px; padding: 20px;">
-                            <MudText Typo="Typo.caption">사용자 정보</MudText>
+                            <MudText Typo="Typo.caption">USER INFORMATION</MudText>
                             <br/>
                             <br/>
                             <MudStack Class="d-flex justify-end flex-grow-1 gap-4" Row="true">
-                                <MudTextField T="string" Label="이메일" @bind-Value="_userSession.Email" ReadOnly="true"/>
-                                <MudTextField T="string" Label="이름" @bind-Value="_userSession.Name" ReadOnly="true"/>
-                                <MudTextField T="string" Label="역활" @bind-Value="_userSession.Role" ReadOnly="true"/>
+                                <MudTextField T="string" Label="EMAIL" @bind-Value="_userSession.Email" ReadOnly="true"/>
+                                <MudTextField T="string" Label="NAME" @bind-Value="_userSession.Name" ReadOnly="true"/>
+                                <MudTextField T="string" Label="ROLE" @bind-Value="_userSession.Role" ReadOnly="true"/>
                                 <MudTooltip Text="User Key">
                                     <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Info" Variant="Variant.Filled" OnClick="GetUserKey"/>
                                 </MudTooltip>
@@ -89,6 +125,40 @@
                         </MudPaper>
                     </MudStack>
                 </MudDrawer>
+                
+                <MudDrawer @bind-Open="@_chatOpen" Width="@_width" Height="@_height" Anchor="@_anchor" Elevation="1" Variant="@DrawerVariant.Temporary">
+                    <MudDrawerHeader>
+                        <MudText Typo="Typo.h6">CHAT</MudText>
+                    </MudDrawerHeader>
+                    <MudStack Row="false">
+                        <MudPaper Elevation="1" Style="margin: 20px; padding: 20px;">
+                            <MudText Typo="Typo.caption">CHAT</MudText>
+                            <br/>
+                            <br/>
+                            <MudStack Class="d-flex justify-end flex-grow-1 gap-4" Row="true">
+                                <MudSelect T="string" @bind-Value="_chatId" Label="Email">
+                                    @foreach (var item in _chatUsers)
+                                    {
+                                        <MudSelectItem Value="item.Email">@item.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudTextField T="string" Label="MSG" @bind-Value="_chatMessage"/>
+                                <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Info" Variant="Variant.Filled" OnClick="SendMessage"/>
+                            </MudStack>
+                            <div id="chatContainer" style="height: 500px; overflow-y: auto;">
+                                @foreach (var item in _chatMessages.ToList())
+                                {
+                                    <MudChat ChatPosition=item.Position Color=item.Color>
+                                        <MudChatHeader Name="@item.Email" Time="@item.ReceivedDate" />
+                                        <MudChatBubble>
+                                            @item.Message
+                                        </MudChatBubble>
+                                    </MudChat>
+                                }
+                            </div>
+                        </MudPaper>
+                    </MudStack>
+                </MudDrawer>                
             </MudLayout>
         </Authorized>
         <NotAuthorized>
@@ -104,6 +174,7 @@
 @inject ISnackbar Snackbar
 @inject AppState State
 @inject ITrivialJs TrivialJs
+@inject IUserService UserService;
 @code {
     private bool forceLogout = false;
     private CancellationTokenSource _cts = new();
@@ -152,6 +223,56 @@
         });
     }
 
+    private HubConnection _hubConnection;
+    private HubConnection _noticeHubConnection;
+    private string _chatId;
+    private string _chatMessage;
+    private List<ChatMessage> _chatMessages = new();
+    private List<ChatUserModel> _chatUsers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _chatUsers = await UserService.GetUsers();
+        
+        string baseUrl = NavigationManager.BaseUri;
+        var hubUrl = baseUrl.TrimEnd('/') + ChatHub.HubUrl;
+        var noticeHubUrl = baseUrl.TrimEnd('/') + NoticeHub.HubUrl;
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(hubUrl)
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<string, string, string, DateTime>("ReceiveMessage", ReceiveMessage);
+        _hubConnection.Reconnected += HubConnectionOnReconnected;
+        _hubConnection.Reconnecting += HubConnectionOnReconnecting;
+
+        await _hubConnection.StartAsync();
+
+        _noticeHubConnection = new HubConnectionBuilder()
+            .WithUrl(noticeHubUrl)
+            .WithAutomaticReconnect()
+            .Build();
+        _noticeHubConnection.Reconnected += HubConnectionOnReconnected;
+        _noticeHubConnection.Reconnecting += HubConnectionOnReconnecting;        
+        _noticeHubConnection.On<string, string, string>("ReceiveNotification", ReceiveNotification);
+        await _noticeHubConnection.StartAsync();
+    }
+    
+    Task HubConnectionOnReconnecting(Exception arg)
+    {
+        Console.WriteLine("HubConnectionOnReconnecting");
+        Console.WriteLine(arg.Message);
+        return Task.CompletedTask;
+    }    
+
+    Task HubConnectionOnReconnected(string arg)
+    {
+        Console.WriteLine("HubConnectionOnReconnected");
+        Console.WriteLine(arg);
+        return Task.CompletedTask;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -186,21 +307,120 @@
             {
                 var browserInfo = await TrivialJs.GetBrowserInfo();
                 State.CurrentCulture = browserInfo["language"];
-            }   
+            }
         }
+        
+        if (_chatMessages.Count > 0) // 메시지가 있을 때만 실행
+        {
+            await TrivialJs.ScrollToBottom("chatContainer");
+        }
+    }
+
+    private bool _chatVisible = false;
+    private bool _chatOpen = false;
+    async Task ReceiveMessage(string from, string to, string message, DateTime dt)
+    {
+        if (to == _userSession.Email)
+        {
+            _chatMessages.Add(new ChatMessage()
+            {
+                Email = to,
+                Position = _userSession.Email == from ? ChatBubblePosition.End : ChatBubblePosition.Start,
+                Color = _userSession.Email == from ? Color.Secondary : Color.Primary,
+                Message = message,
+                ReceivedDate = $"{dt.ToLongDateString()} {dt.ToLongTimeString()}"
+            });
+            _chatVisible = true;
+        }
+        else if (from == _userSession.Email)
+        {
+            _chatMessages.Add(new ChatMessage()
+            {
+                Email = from,
+                Position = _userSession.Email == from ? ChatBubblePosition.End : ChatBubblePosition.Start,
+                Color = _userSession.Email == from ? Color.Secondary : Color.Primary,
+                Message = message,
+                ReceivedDate = $"{dt.ToLongDateString()} {dt.ToLongTimeString()}"
+            });
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    void ToggleChat()
+    {
+        _chatOpen = true;
+        if (_chatVisible)
+        {
+            _chatVisible = !_chatVisible;    
+        }
+        _anchor = Anchor.End;
+
+        switch (_anchor)
+        {
+            case Anchor.Start:
+                _width = "300px";
+                _height = "100%";
+                break;
+            case Anchor.End:
+                _width = "40%";
+                _height = "100%";
+                break;
+            case Anchor.Bottom:
+                _width = "100%";
+                _height = "200px";
+                break;
+            case Anchor.Top:
+                _width = "100%";
+                _height = "350px";
+                break;
+        }        
+    }
+
+    List<NoticeMessage> _noticeMessages = new();
+    async Task ReceiveNotification(string userId, string type, string message)
+    {
+        var notice = message.xDeserialize<NoticeMessage>();
+        if (userId.xIsNotEmpty())
+        {
+            if (userId == _userSession.UserId)
+            {
+                _noticeMessages.Add(notice);                
+            }
+        }
+        else
+        {
+            _noticeMessages.Add(notice);
+        }
+
+        _noticeVisible = true;
+        
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    private bool _noticeVisible = false;
+    async Task NotificationClick(NoticeMessage item)
+    {
+        //this._noticeMessages.Remove(item);
+        item.IsRead = true;
+        _noticeVisible = this._noticeMessages.Any(m => m.IsRead == false);
+    }
+
+    async Task SendMessage()
+    {
+        await _hubConnection.SendAsync("SendMessage", _userSession.Email, _chatId, _chatMessage);
     }
     
     void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
     }
-
-    void OpenDrawer(Anchor anchor)
+    
+    private void SettingClick()
     {
         _open = true;
-        _anchor = anchor;
+        _anchor = Anchor.End;
 
-        switch (anchor)
+        switch (_anchor)
         {
             case Anchor.Start:
                 _width = "300px";
@@ -220,12 +440,7 @@
                 break;
         }
     }
-    
-    private void SettingClick()
-    {
-        OpenDrawer(Anchor.End);
-    }
-    
+
     void MenuSearchValueChange(string obj)
     {
         if (obj.xIsEmpty())
@@ -295,4 +510,36 @@
     {
         _popoverOpen = !_popoverOpen;
     }
+
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_cts != null) await CastAndDispose(_cts);
+        if (_searchTextField != null) await _searchTextField.DisposeAsync();
+        if (_hubConnection != null)
+        {
+            _hubConnection.Reconnected -= HubConnectionOnReconnected;
+            _hubConnection.Reconnecting -= HubConnectionOnReconnecting;
+            await _hubConnection.DisposeAsync();
+        }
+
+        if (_noticeHubConnection != null)
+        {
+            _noticeHubConnection.Reconnected -= HubConnectionOnReconnected;
+            _noticeHubConnection.Reconnecting -= HubConnectionOnReconnecting;
+            await _noticeHubConnection.DisposeAsync();
+        }
+        if (Snackbar != null) await CastAndDispose(Snackbar);
+
+        return;
+
+        static async ValueTask CastAndDispose(IDisposable resource)
+        {
+            if (resource is IAsyncDisposable resourceAsyncDisposable)
+                await resourceAsyncDisposable.DisposeAsync();
+            else
+                resource.Dispose();
+        }
+    }
+
 }

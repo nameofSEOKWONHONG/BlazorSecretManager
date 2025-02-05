@@ -7,6 +7,7 @@ public interface ITrivialJs
     Task<Dictionary<string, string>> GetBrowserInfo();
     Task Alert(string message);
     Task CopyToClipboard(string text);
+    Task ScrollToBottom(string ele);
 }
 
 public class TrivialJs : ITrivialJs
@@ -32,4 +33,9 @@ public class TrivialJs : ITrivialJs
     {
         await _jsRuntime.InvokeVoidAsync("copyToClipboard", text);
     }    
+    
+    public async Task ScrollToBottom(string ele)
+    {
+        await _jsRuntime.InvokeVoidAsync("scrollToBottom", ele);
+    }
 }

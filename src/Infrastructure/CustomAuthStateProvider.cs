@@ -14,17 +14,14 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
     private readonly ProtectedSessionStorage _protectedSessionStore;
     private readonly IUserRepository _userRepository;
     private CircuitHandler _circuitHandler;
-    private readonly IUserConnectionService _userConnectionService;
 
     public CustomAuthStateProvider(ProtectedSessionStorage protectedSessionStore,
         IUserRepository userRepository,
-        CircuitHandler circuitHandler,
-        IUserConnectionService userConnectionService)
+        CircuitHandler circuitHandler)
     {
         _protectedSessionStore = protectedSessionStore;
         _userRepository = userRepository;
         _circuitHandler = circuitHandler;
-        _userConnectionService = userConnectionService;
     }
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()

@@ -3,6 +3,7 @@ using BlazorSecretManager.Components;
 using BlazorSecretManager.Components.Pages.Secret.ViewModels;
 using BlazorSecretManager.Components.Pages.User.ViewModels;
 using BlazorSecretManager.Entities;
+using BlazorSecretManager.Hubs;
 using BlazorSecretManager.Infrastructure;
 using BlazorSecretManager.Services.Auth;
 using BlazorSecretManager.Services.Auth.Abstracts;
@@ -11,6 +12,8 @@ using BlazorSecretManager.Services.Menu.Abstracts;
 using BlazorSecretManager.Services.Secrets;
 using BlazorSecretManager.Services.Secrets.Abstracts;
 using BlazorTrivialJs;
+using Hangfire;
+using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
@@ -18,6 +21,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using MudBlazor;
+using MudBlazor.Extensions;
 using MudBlazor.Services;
 using MudComposite;
 
@@ -66,6 +70,7 @@ public static class DependencyInjection
             config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
         });
         services.AddMudComposite();
+        services.AddMudExtensions();
 
         services.AddControllers();
 
@@ -102,6 +107,9 @@ public static class DependencyInjection
         
         services.AddScoped<AppState>();
         services.AddScoped<ITrivialJs, TrivialJs>();
+        
+        services.AddHangfire(config => config.UseMemoryStorage());
+        services.AddHangfireServer();
     }
 
     public static void UseMudSecretManager(this WebApplication app)
@@ -121,10 +129,14 @@ public static class DependencyInjection
 
         app.UseAntiforgery();
 
+        app.UseHangfireDashboard();
+        
         app.MapControllers();
 
         app.MapStaticAssets();
         app.MapRazorComponents<App>()
             .AddInteractiveServerRenderMode();
+        app.MapHub<ChatHub>(ChatHub.HubUrl);
+        app.MapHub<NoticeHub>(NoticeHub.HubUrl);
     }
 }

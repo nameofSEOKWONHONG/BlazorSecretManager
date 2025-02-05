@@ -18,4 +18,11 @@ function goBack() {
 
 function goForward() {
     window.history.forward();
-} 
+}
+
+function scrollToBottom(id) {
+    let container = document.getElementById(id);
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
+}

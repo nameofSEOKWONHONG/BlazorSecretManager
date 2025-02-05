@@ -15,8 +15,6 @@
 @using SecretManager
 @using Color = MudBlazor.Color
 
-@rendermode InteractiveAuto
-
 @layout LoginLayout
 
 @attribute [AllowAnonymous]
@@ -106,6 +104,7 @@
             UserKey = key,
             ConnectionId = CircuitHandler.xAs<CustomCircuitHandler>().ConnectionId
         };
+        
         if (UserConnectionService.AlreadyExists(userId))
         {
             Snackbar.Add("request administrator", Severity.Info);
@@ -113,11 +112,10 @@
         }
         
         UserConnectionService.AddUser(session);
-        // 확장 함수를 통해 토큰 암호화 후 localStorage에 저장
+        
         await ProtectedSessionStore.SetAsync(Constants.JwtCacheKey, result.Data);
         _authStateProvider.NotifyUserAuthentication(user);
-        StateHasChanged();
-        _navigationManager.NavigateTo("/", false);
+        _navigationManager.NavigateTo("/", true);
     }
     
     private async Task<Results<string>> AuthenticateUser(string email, string password)
