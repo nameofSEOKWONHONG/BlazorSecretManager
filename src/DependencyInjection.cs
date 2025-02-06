@@ -9,6 +9,7 @@ using BlazorSecretManager.Services.Auth;
 using BlazorSecretManager.Services.Auth.Abstracts;
 using BlazorSecretManager.Services.Menu;
 using BlazorSecretManager.Services.Menu.Abstracts;
+using BlazorSecretManager.Services.Messages;
 using BlazorSecretManager.Services.Secrets;
 using BlazorSecretManager.Services.Secrets.Abstracts;
 using BlazorTrivialJs;
@@ -70,7 +71,7 @@ public static class DependencyInjection
             config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
         });
         services.AddMudComposite();
-        services.AddMudExtensions();
+        services.AddMudServicesWithExtensions(c => c.WithoutAutomaticCssLoading());
 
         services.AddControllers();
 
@@ -106,10 +107,12 @@ public static class DependencyInjection
         services.AddTransient<ProgramInitializer>();
         
         services.AddScoped<AppState>();
-        services.AddScoped<ITrivialJs, TrivialJs>();
+        services.AddTrivialJs();
         
         services.AddHangfire(config => config.UseMemoryStorage());
         services.AddHangfireServer();
+
+        services.AddScoped<INotificationService, NotificationService>();
     }
 
     public static void UseMudSecretManager(this WebApplication app)
@@ -123,7 +126,7 @@ public static class DependencyInjection
         }
 
         app.UseHttpsRedirection();
-
+        
         app.UseAuthentication();
         app.UseAuthorization();
 
@@ -131,6 +134,7 @@ public static class DependencyInjection
 
         app.UseHangfireDashboard();
         
+        app.Use(MudExWebApp.MudExMiddleware);
         app.MapControllers();
 
         app.MapStaticAssets();

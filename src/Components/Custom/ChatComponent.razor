@@ -1,0 +1,186 @@
+@using BlazorSecretManager.Hubs
+@using BlazorSecretManager.Hubs.Dtos
+@using BlazorSecretManager.Infrastructure
+@using BlazorSecretManager.Services.Auth
+@using BlazorTrivialJs
+@using eXtensionSharp
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
+
+<MudGrid>
+    <MudItem xs="3" sm="3">
+        <MudList T="ChatUserModel" @bind-SelectedValue="_selectedChatUser">
+            @foreach (var item in _chatUsers)
+            {
+                if (item.Id != UserSession.UserId)
+                {
+                    <MudListItem Value="item">@item.Name</MudListItem>    
+                }   
+            }
+        </MudList>
+    </MudItem>
+    <MudItem xs="9" sm="9">
+        <MudPaper Elevation="1">
+            <div id="chatContainer" style="height: 450px; overflow-y: auto;">
+                @if (_selectedChatUser.Messages.xIsNotEmpty())
+                {
+                    @foreach (var item in _selectedChatUser.Messages.xToList())
+                    {
+                        <MudChat ChatPosition=item.Position Color=item.Color>
+                            <MudChatHeader Name="@item.Email" Time="@item.ReceivedDate"/>
+                            <MudChatBubble>
+                                @item.Message
+                            </MudChatBubble>
+                        </MudChat>
+                    }                    
+                }
+            </div>
+        </MudPaper>
+        <br/>
+        <MudStack Row="true">
+            <MudTextField T="string" 
+                          Label="MSG"
+                          ValueChanged="MessageChange"
+                          OnKeyUp="Callback"
+                          @ref="_message" />
+            <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Info" Variant="Variant.Filled" OnClick="SendMessage"/>
+        </MudStack>
+    </MudItem>
+</MudGrid>
+
+@inject NavigationManager NavManager;
+@inject IUserService UserService;
+@inject ITrivialJs TrivialJs;
+
+@code {
+    public List<ChatMessage> _chatMessages { get; set; } = new();
+    private List<ChatUserModel> _chatUsers  = new();
+    [Parameter] public UserSession UserSession { get; set; }
+    
+    private HubConnection _hubConnection;
+    
+    string _chatMessage;
+    ChatUserModel _selectedChatUser = new();
+
+    MudTextField<string> _message;
+    private List<ChatMessagePerUser> _chatMessagesPerUser = new();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _chatUsers = await UserService.GetUsers();
+        //load messages
+        
+        string baseUrl = NavManager.BaseUri;
+        var hubUrl = baseUrl.TrimEnd('/') + ChatHub.HubUrl;
+        
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(hubUrl)
+            .WithAutomaticReconnect()
+            .Build();
+
+        _hubConnection.On<int, string, string, string, DateTime>("ReceiveMessage", ReceiveMessage);
+        _hubConnection.Reconnected += HubConnectionOnReconnected;
+        _hubConnection.Reconnecting += HubConnectionOnReconnecting;
+
+        await _hubConnection.StartAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_chatMessagesPerUser.Count > 0) // 메시지가 있을 때만 실행
+        {
+            await TrivialJs.ScrollToBottom("chatContainer");
+        }
+    }
+
+    async Task ReceiveMessage(int hash, string from, string to, string message, DateTime dt)
+    {
+        if (_selectedChatUser.Messages.xIsEmpty()) _selectedChatUser.Messages = new();
+        if (to == UserSession.Email)
+        {
+            _selectedChatUser.Messages.Add(new ChatMessage()
+            {
+                Email = to,
+                Position = UserSession.Email == from ? ChatBubblePosition.End : ChatBubblePosition.Start,
+                Color = UserSession.Email == from ? Color.Secondary : Color.Primary,
+                Message = message,
+                ReceivedDate = $"{dt.ToLongDateString()} {dt.ToLongTimeString()}"
+            });
+            await _hubConnection.SendAsync("ConfirmMessage", hash);
+        }
+        else if (from == UserSession.Email)
+        {
+            _selectedChatUser.Messages.Add(new ChatMessage()
+            {
+                Email = from,
+                Position = UserSession.Email == from ? ChatBubblePosition.End : ChatBubblePosition.Start,
+                Color = UserSession.Email == from ? Color.Secondary : Color.Primary,
+                Message = message,
+                ReceivedDate = $"{dt.ToLongDateString()} {dt.ToLongTimeString()}"
+            });
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+        
+    Task HubConnectionOnReconnecting(Exception arg)
+    {
+        Console.WriteLine("HubConnectionOnReconnecting");
+        Console.WriteLine(arg.Message);
+        return Task.CompletedTask;
+    }    
+
+    Task HubConnectionOnReconnected(string arg)
+    {
+        Console.WriteLine("HubConnectionOnReconnected");
+        Console.WriteLine(arg);
+        return Task.CompletedTask;
+    }
+
+    HashSet<string> _duplicate = new();
+    async Task SendMessage()
+    {
+        await _hubConnection.SendAsync("SendMessage", UserSession.Email, _selectedChatUser.Email, _chatMessage);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+        {
+            _hubConnection.Reconnected -= HubConnectionOnReconnected;
+            _hubConnection.Reconnecting -= HubConnectionOnReconnecting;
+            await _hubConnection.DisposeAsync();
+        }
+        Console.WriteLine("chat dispose");
+    }
+
+    private async Task Callback(KeyboardEventArgs e)
+    {   
+        if (e.Code is "Enter")
+        {
+            if (_chatMessage.xIsEmpty()) return;
+            
+            if (_duplicate.Add(_chatMessage))
+            {
+                await SendMessage();
+                await _message.Clear();
+            }
+            else
+            {
+                _duplicate.Clear();
+            }
+            Console.WriteLine("click");
+        }
+    }
+
+    void MessageChange(string str)
+    {
+        _chatMessage = str;
+    }
+
+    class ChatMessagePerUser
+    {
+        public string User { get; set; }
+        public List<ChatMessage> ChatMessages { get; set; }
+    }
+}

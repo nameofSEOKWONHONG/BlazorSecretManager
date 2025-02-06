@@ -1,4 +1,8 @@
+using System.Text;
 using BlazorSecretManager.Components.Dialogs;
+using BlazorSecretManager.Entities;
+using BlazorSecretManager.Infrastructure;
+using BlazorSecretManager.Services.Auth;
 using BlazorSecretManager.Services.Secrets.Abstracts;
 using BlazorTrivialJs;
 using eXtensionSharp;
@@ -14,13 +18,16 @@ namespace BlazorSecretManager.Components.Pages.Secret.ViewModels;
 public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretSearchModel>, ISecretListViewModel
 {
     private readonly ISecretService _service;
+    private readonly IUserService _userService;
     private readonly ITrivialJs _trivialJs;
 
     public SecretListViewModel(MudViewModelItem mudViewModelItem,
         ISecretService service,
+        IUserService userService,
         ITrivialJs trivialJs) : base(mudViewModelItem)
     {
         _service = service;
+        _userService = userService;
         _trivialJs = trivialJs;
     }
 
@@ -85,9 +92,20 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
             }
             else if (id == "notice")
             {
+                var userSession = await _userService.GetUserSession();
                 using var client = new HttpClient();
                 client.BaseAddress = new Uri(this.Utility.NavigationManager.BaseUri);
-                var res = await client.PostAsync("api/notice", null);
+                var item = new Notification()
+                {
+                    UserId = userSession.UserId,
+                    Type = "A",
+                    Title = "New Secret",
+                    Content = "New Secret",
+                    Extra = "Notice",
+                    PublishDate = DateTime.Now
+                };
+                var context = new StringContent(item.xSerialize(), Encoding.UTF8, "application/json");
+                var res = await client.PostAsync("api/notice", context);
                 res.EnsureSuccessStatusCode();
             }
         };

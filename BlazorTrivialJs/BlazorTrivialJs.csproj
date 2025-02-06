@@ -15,4 +15,8 @@
     <ItemGroup>
         <Folder Include="wwwroot\" />
     </ItemGroup>
+
+    <ItemGroup>
+        <SupportedPlatform Include="browser" />
+    </ItemGroup>
 </Project>

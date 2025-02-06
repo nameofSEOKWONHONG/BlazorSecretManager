@@ -1,13 +1,20 @@
 ﻿@using System.Security.Claims
+@using BlazorSecretManager.Components.Dialogs
 @using BlazorSecretManager.Hubs
 @using BlazorSecretManager.Hubs.Dtos
 @using BlazorSecretManager.Infrastructure
-@using BlazorSecretManager.Services.Auth
 @using BlazorTrivialJs
 @using eXtensionSharp
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using Microsoft.AspNetCore.SignalR.Client
+@using MudBlazor.Extensions.Core
+@using MudBlazor.Extensions.Helper
+@using MudBlazor.Extensions.Options
+@using MudBlazor.Utilities
+@using BlazorSecretManager.Components.Custom
+@using BlazorSecretManager.Entities
+@using BlazorSecretManager.Services.Messages
 @implements IAsyncDisposable
 @inherits LayoutComponentBase
 
@@ -74,7 +81,8 @@
                         </MudMenu>
                     </MudBadge>
                     <MudBadge Color="Color.Secondary" Dot="true" Overlap="true" Visible="_chatVisible">
-                        <MudButton StartIcon="@Icons.Material.Outlined.Chat" OnClick="ToggleChat">CHAT</MudButton>
+                        <MudButton StartIcon="@Icons.Material.Outlined.Chat" OnClick="ToggleChat" Variant="Variant.Outlined">CHAT V1</MudButton>
+                        <MudButton StartIcon="@Icons.Material.Outlined.Chat" OnClick="TestModaless" Variant="Variant.Outlined">CHAT V2</MudButton>
                     </MudBadge>
                     <MudMenu StartIcon="@Icons.Material.Filled.Language" Variant="Variant.Outlined" Style="margin: 10px;" Label="@AppState.SupportedLanguage[State.CurrentCulture]">
                         @foreach (var item in AppState.SupportedCultures)
@@ -90,15 +98,7 @@
                 </MudDrawer>
                 <MudMainContent>
                     <MudContainer MaxWidth="MaxWidth.ExtraLarge" Style="padding: 10px;">
-                        @if (forceLogout)
-                        {
-                            <p style="color: red;">다른 곳에서 로그인되었습니다. 다시 로그인하세요.</p>
-                            <button>로그아웃</button>
-                        }
-                        else
-                        {
-                            @Body    
-                        }
+                        @Body
                     </MudContainer>
                 </MudMainContent>
                 <MudScrollToTop TopOffset="400" Style="z-index:2000;">
@@ -125,40 +125,18 @@
                         </MudPaper>
                     </MudStack>
                 </MudDrawer>
-                
-                <MudDrawer @bind-Open="@_chatOpen" Width="@_width" Height="@_height" Anchor="@_anchor" Elevation="1" Variant="@DrawerVariant.Temporary">
-                    <MudDrawerHeader>
-                        <MudText Typo="Typo.h6">CHAT</MudText>
-                    </MudDrawerHeader>
-                    <MudStack Row="false">
-                        <MudPaper Elevation="1" Style="margin: 20px; padding: 20px;">
-                            <MudText Typo="Typo.caption">CHAT</MudText>
-                            <br/>
-                            <br/>
-                            <MudStack Class="d-flex justify-end flex-grow-1 gap-4" Row="true">
-                                <MudSelect T="string" @bind-Value="_chatId" Label="Email">
-                                    @foreach (var item in _chatUsers)
-                                    {
-                                        <MudSelectItem Value="item.Email">@item.Name</MudSelectItem>
-                                    }
-                                </MudSelect>
-                                <MudTextField T="string" Label="MSG" @bind-Value="_chatMessage"/>
-                                <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Info" Variant="Variant.Filled" OnClick="SendMessage"/>
-                            </MudStack>
-                            <div id="chatContainer" style="height: 500px; overflow-y: auto;">
-                                @foreach (var item in _chatMessages.ToList())
-                                {
-                                    <MudChat ChatPosition=item.Position Color=item.Color>
-                                        <MudChatHeader Name="@item.Email" Time="@item.ReceivedDate" />
-                                        <MudChatBubble>
-                                            @item.Message
-                                        </MudChatBubble>
-                                    </MudChat>
-                                }
-                            </div>
-                        </MudPaper>
-                    </MudStack>
-                </MudDrawer>                
+
+
+                <div id="popup" class="popup" style=@_modalessCss>
+                    <div id="popup-header" class="popup-header">
+                        <span>CHAT</span>
+                        <span class="close" @onclick="ClosePopup">&times;</span>
+                    </div>
+                    <div class="popup-content">
+                        <ChatComponent UserSession="_userSession"/>
+                    </div>
+                    <div id="popup-resizer" class="resizer"></div>
+                </div>                
             </MudLayout>
         </Authorized>
         <NotAuthorized>
@@ -174,9 +152,9 @@
 @inject ISnackbar Snackbar
 @inject AppState State
 @inject ITrivialJs TrivialJs
-@inject IUserService UserService;
+@inject INotificationService NotificationService;
+@inject IDialogService DialogService;
 @code {
-    private bool forceLogout = false;
     private CancellationTokenSource _cts = new();
 
     private bool _drawerOpen = true;
@@ -216,38 +194,15 @@
 
     protected override void OnInitialized()
     {
-        _cts.Token.Register(() =>
-        {
-            forceLogout = true;
-            StateHasChanged();
-        });
     }
 
-    private HubConnection _hubConnection;
+    
     private HubConnection _noticeHubConnection;
-    private string _chatId;
-    private string _chatMessage;
-    private List<ChatMessage> _chatMessages = new();
-    private List<ChatUserModel> _chatUsers = new();
-
     protected override async Task OnInitializedAsync()
     {
-        _chatUsers = await UserService.GetUsers();
-        
         string baseUrl = NavigationManager.BaseUri;
-        var hubUrl = baseUrl.TrimEnd('/') + ChatHub.HubUrl;
+        
         var noticeHubUrl = baseUrl.TrimEnd('/') + NoticeHub.HubUrl;
-
-        _hubConnection = new HubConnectionBuilder()
-            .WithUrl(hubUrl)
-            .WithAutomaticReconnect()
-            .Build();
-
-        _hubConnection.On<string, string, string, DateTime>("ReceiveMessage", ReceiveMessage);
-        _hubConnection.Reconnected += HubConnectionOnReconnected;
-        _hubConnection.Reconnecting += HubConnectionOnReconnecting;
-
-        await _hubConnection.StartAsync();
 
         _noticeHubConnection = new HubConnectionBuilder()
             .WithUrl(noticeHubUrl)
@@ -308,106 +263,115 @@
                 var browserInfo = await TrivialJs.GetBrowserInfo();
                 State.CurrentCulture = browserInfo["language"];
             }
+            
+            _primaryColor = await Color.Primary.ToMudColorAsync(JSRuntime);
+            
+            await JSRuntime.InvokeVoidAsync("initializeDraggablePopup", "popup");
+            await JSRuntime.InvokeVoidAsync("initializeResizablePopup", "popup");
+
+            _noticeMessages = await NotificationService.GetNotifications(userId);
+            _noticeVisible = _noticeMessages.Count > 0;
+            await InvokeAsync(StateHasChanged);
         }
-        
-        if (_chatMessages.Count > 0) // 메시지가 있을 때만 실행
-        {
-            await TrivialJs.ScrollToBottom("chatContainer");
-        }
+    }
+    
+    private async Task StartDrag(MouseEventArgs e)
+    {
+        await JSRuntime.InvokeVoidAsync("startDrag", "popup");
     }
 
     private bool _chatVisible = false;
     private bool _chatOpen = false;
-    async Task ReceiveMessage(string from, string to, string message, DateTime dt)
+
+    private MudColor _primaryColor;
+    public DialogOptionsEx Options { get; set; } = new DialogOptionsEx
     {
-        if (to == _userSession.Email)
+        MaximizeButton = true,
+        CloseButton = true,
+        FullHeight = false,
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        DragMode = MudDialogDragMode.Simple,
+        Animations = new[] { AnimationType.Pulse },
+        Position = DialogPosition.BottomRight,
+        BackdropClick = false,
+        Modal = true,
+    };
+    private string _code;
+    async Task ToggleChat()
+    {
+        var options = Options.CloneOptions();
+        _code = MudExCodeView.ExecuteAndReturnFuncAsString(() =>
         {
-            _chatMessages.Add(new ChatMessage()
-            {
-                Email = to,
-                Position = _userSession.Email == from ? ChatBubblePosition.End : ChatBubblePosition.Start,
-                Color = _userSession.Email == from ? Color.Secondary : Color.Primary,
-                Message = message,
-                ReceivedDate = $"{dt.ToLongDateString()} {dt.ToLongTimeString()}"
-            });
-            _chatVisible = true;
-        }
-        else if (from == _userSession.Email)
-        {
-            _chatMessages.Add(new ChatMessage()
-            {
-                Email = from,
-                Position = _userSession.Email == from ? ChatBubblePosition.End : ChatBubblePosition.Start,
-                Color = _userSession.Email == from ? Color.Secondary : Color.Primary,
-                Message = message,
-                ReceivedDate = $"{dt.ToLongDateString()} {dt.ToLongTimeString()}"
-            });
-        }
-        await InvokeAsync(StateHasChanged);
+            options.DialogAppearance = MudExAppearance.FromCss(MudExCss.Classes.Dialog.ColorfullGlass)
+                .WithStyle(b => b
+                    .WithSize(50, CssUnit.Percentage)
+                    .WithMaxSize(90, 60, CssUnit.Percentage)
+                    .WithBoxShadow($" 0 8px 32px 0 {_primaryColor.SetAlpha(0.4).ToString(MudColorOutputFormats.RGBA)}")
+                    .WithBackgroundColor(_primaryColor.SetAlpha(0.2))
+                );
+            options.DialogBackgroundAppearance = MudExAppearance.FromCss(MudExCss.Classes.Backgrounds.MovingDots)
+                .WithStyle(new
+                {
+                    Border = "4px solid",
+                    BorderColor = Color.Secondary,
+                    BorderRadius = 8
+                });
+        });     
+         _ = await DialogService.ShowEx<ChatDialog>("Chat Dialog", dialog => { dialog.UserSession = _userSession; }, Options);
+        
+        // IMudExDialogReference<ChatDialog>? dlgReference = await DialogService.ShowEx<ChatDialog>("Chat Dialog", dialog =>
+        // {
+        //     dialog.UserSession = _userSession;
+        // }, options);
+
+        // _ = await DialogService.ShowAsync<ChatDialog>("CHAT", new DialogParameters()
+        // {
+        //     {"UserSession", _userSession },
+        // }, new DialogOptions()
+        // {
+        //     FullWidth = true,
+        //     MaxWidth = MaxWidth.Medium,
+        // });
     }
 
-    void ToggleChat()
+    private string _modalessCss = "display: none;";
+    void TestModaless()
     {
-        _chatOpen = true;
-        if (_chatVisible)
-        {
-            _chatVisible = !_chatVisible;    
-        }
-        _anchor = Anchor.End;
-
-        switch (_anchor)
-        {
-            case Anchor.Start:
-                _width = "300px";
-                _height = "100%";
-                break;
-            case Anchor.End:
-                _width = "40%";
-                _height = "100%";
-                break;
-            case Anchor.Bottom:
-                _width = "100%";
-                _height = "200px";
-                break;
-            case Anchor.Top:
-                _width = "100%";
-                _height = "350px";
-                break;
-        }        
+        _modalessCss = "display: block;";
     }
 
-    List<NoticeMessage> _noticeMessages = new();
+    void ClosePopup()
+    {
+        _modalessCss = "display: none;";
+    }
+
+    List<Notification> _noticeMessages = new();
     async Task ReceiveNotification(string userId, string type, string message)
     {
-        var notice = message.xDeserialize<NoticeMessage>();
+        var notice = message.xDeserialize<Notification>();
         if (userId.xIsNotEmpty())
         {
             if (userId == _userSession.UserId)
             {
-                _noticeMessages.Add(notice);                
+                _noticeMessages.Add(notice);
+                _noticeVisible = true;
             }
         }
         else
         {
             _noticeMessages.Add(notice);
+            _noticeVisible = true;
         }
-
-        _noticeVisible = true;
-        
         await InvokeAsync(StateHasChanged);
     }
     
     private bool _noticeVisible = false;
-    async Task NotificationClick(NoticeMessage item)
+    async Task NotificationClick(Notification item)
     {
-        //this._noticeMessages.Remove(item);
         item.IsRead = true;
+        await _noticeHubConnection.SendAsync("ConfirmNotification", item.Id);
         _noticeVisible = this._noticeMessages.Any(m => m.IsRead == false);
-    }
-
-    async Task SendMessage()
-    {
-        await _hubConnection.SendAsync("SendMessage", _userSession.Email, _chatId, _chatMessage);
     }
     
     void DrawerToggle()
@@ -516,13 +480,6 @@
     {
         if (_cts != null) await CastAndDispose(_cts);
         if (_searchTextField != null) await _searchTextField.DisposeAsync();
-        if (_hubConnection != null)
-        {
-            _hubConnection.Reconnected -= HubConnectionOnReconnected;
-            _hubConnection.Reconnecting -= HubConnectionOnReconnecting;
-            await _hubConnection.DisposeAsync();
-        }
-
         if (_noticeHubConnection != null)
         {
             _noticeHubConnection.Reconnected -= HubConnectionOnReconnected;

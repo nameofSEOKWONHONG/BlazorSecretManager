@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using System.Collections.Concurrent;
+using Microsoft.AspNetCore.SignalR;
 
 namespace BlazorSecretManager.Hubs;
 
@@ -13,7 +14,13 @@ public class ChatHub : Hub
     
     public async Task SendMessage(string from, string to, string message)
     {
-        await Clients.All.SendAsync("ReceiveMessage", from, to, message, DateTime.Now);
+        var src = $"{from}|{to}|{message}";
+        var hash = src.GetHashCode();
+        await Clients.All.SendAsync("ReceiveMessage", hash, from, to, message, DateTime.Now);
+    }
+
+    public void ConfirmMessage(int hash)
+    {
     }
     
     // 그룹에 사용자 추가

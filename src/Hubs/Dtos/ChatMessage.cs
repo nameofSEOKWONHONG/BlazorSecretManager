@@ -13,6 +13,8 @@ public class ChatMessage
 
 public class NoticeMessage
 {
+    public string UserId { get; set; }
+    public string Type { get; set; }
     public string Title { get; set; }
     public string Content { get; set; }
     public string Extra { get; set; }

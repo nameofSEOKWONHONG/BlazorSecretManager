@@ -19,6 +19,7 @@ public class AppDbContext : IdentityDbContext
         modelBuilder.ApplyConfiguration(new Secret.SecretConfiguration());
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new MenuConfiguration());
+        modelBuilder.ApplyConfiguration(new NotificationConfiguration());
     }
 
     public void EnsureCreated()
@@ -29,6 +30,7 @@ public class AppDbContext : IdentityDbContext
     public DbSet<Secret> Secrets { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<Menu> Menus { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 }
 
 

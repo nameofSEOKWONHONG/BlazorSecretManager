@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BlazorSecretManager.Entities;
+using BlazorSecretManager.Hubs.Dtos;
 using BlazorSecretManager.Infrastructure;
 using eXtensionSharp;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -26,6 +27,8 @@ public class ChatUserModel
     public string Id { get; set; }
     public string Email { get; set; }
     public string Name { get; set; }
+    
+    public List<ChatMessage> Messages { get; set; } = new();
 }
 
 public class UserService : IUserService
