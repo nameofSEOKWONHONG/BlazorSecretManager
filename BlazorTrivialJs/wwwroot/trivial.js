@@ -19,7 +19,6 @@ function getBrowserInfo() {
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone // 사용자의 시간대 (예: "Asia/Seoul")
     }; 
 }
-
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(
         () => console.log("Copied to clipboard"),

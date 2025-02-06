@@ -5,6 +5,7 @@
 @using BlazorTrivialJs
 @using eXtensionSharp
 @using Microsoft.AspNetCore.SignalR.Client
+@using TagLib.Ape
 @implements IAsyncDisposable
 
 <MudGrid>
@@ -29,7 +30,7 @@
                         <MudChat ChatPosition=item.Position Color=item.Color>
                             <MudChatHeader Name="@item.Email" Time="@item.ReceivedDate"/>
                             <MudChatBubble>
-                                @item.Message
+                                <pre>@item.Message</pre>
                             </MudChatBubble>
                         </MudChat>
                     }                    
@@ -38,11 +39,14 @@
         </MudPaper>
         <br/>
         <MudStack Row="true">
-            <MudTextField T="string" 
-                          Label="MSG"
-                          ValueChanged="MessageChange"
-                          OnKeyUp="Callback"
-                          @ref="_message" />
+            <textarea id="chatTextArea" @ref="textAreaRef" @bind="@_chatMessage" @bind:event="oninput" @onkeydown="HandleKeyDown" @onkeyup="HandleKeyUp" class="chat-input"
+                placeholder="input chat message"
+                rows="4" style="width:100%;"></textarea>
+            @* <MudTextField T="string" *@
+            @*               Label="MSG" *@
+            @*               ValueChanged="MessageChange" *@
+            @*               OnKeyUp="Callback" *@
+            @*               @ref="_message"/> *@
             <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Info" Variant="Variant.Filled" OnClick="SendMessage"/>
         </MudStack>
     </MudItem>
@@ -51,6 +55,7 @@
 @inject NavigationManager NavManager;
 @inject IUserService UserService;
 @inject ITrivialJs TrivialJs;
+@inject IJSRuntime JsRuntime;
 
 @code {
     public List<ChatMessage> _chatMessages { get; set; } = new();
@@ -84,10 +89,20 @@
 
         await _hubConnection.StartAsync();
     }
+    
+    private ElementReference textAreaRef;
+    private DotNetObjectReference<ChatComponent> dotNetRef;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_chatMessagesPerUser.Count > 0) // 메시지가 있을 때만 실행
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+            await JsRuntime.InvokeVoidAsync("preventEnterDefault", dotNetRef, textAreaRef);
+
+        }
+        
+        if (_selectedChatUser.Messages.Count > 0) // 메시지가 있을 때만 실행
         {
             await TrivialJs.ScrollToBottom("chatContainer");
         }
@@ -176,6 +191,44 @@
     void MessageChange(string str)
     {
         _chatMessage = str;
+    }
+    
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && e.ShiftKey)
+        {
+
+        }
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && e.ShiftKey)
+        {
+            // Shift + Enter → 줄바꿈 유지
+            
+        }
+        else if(e.Key == "Enter" && !e.ShiftKey)
+        {
+            if(_chatMessage.xIsEmpty()) return;
+            await SendMessage();
+            _chatMessage = string.Empty;
+        }
+    }
+    
+    [JSInvokable]
+    public async Task OnEnterPressed()
+    {
+        await SendMessage();
+    }
+
+    private void SendMessage2()
+    {
+        if (!string.IsNullOrWhiteSpace(_chatMessage))
+        {
+            Console.WriteLine($"[채팅 전송]: {_chatMessage}");
+            _chatMessage = ""; // 메시지 초기화
+        }
     }
 
     class ChatMessagePerUser
