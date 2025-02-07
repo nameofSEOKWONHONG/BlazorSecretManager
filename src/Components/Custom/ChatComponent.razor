@@ -3,7 +3,6 @@
 @using BlazorSecretManager.Hubs
 @using BlazorSecretManager.Hubs.Dtos
 @using BlazorSecretManager.Infrastructure
-@using BlazorSecretManager.Services.Auth
 @using BlazorSecretManager.Services.Messages
 @using BlazorTrivialJs
 @using eXtensionSharp
@@ -52,41 +51,39 @@
                 <textarea id="chatTextArea" @ref="textAreaRef" @bind="@_chatMessage" @bind:event="oninput" @onkeyup="HandleKeyUp" class="chat-input"
                           placeholder="input chat message"
                           rows="4" style="width:100%;"></textarea>
-            @* <MudTextField T="string" *@
-            @*               Label="MSG" *@
-            @*               ValueChanged="MessageChange" *@
-            @*               OnKeyUp="Callback" *@
-            @*               @ref="_message"/> *@
             <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Info" Variant="Variant.Filled" OnClick="SendMessage"/>
         </MudStack>
     </MudItem>
 </MudGrid>
 
 @inject NavigationManager NavManager;
-@inject IUserService UserService;
 @inject ITrivialJs TrivialJs;
 @inject IJSRuntime JsRuntime;
 @inject IChatService ChatService;
 @inject IDialogService DialogService;
-@code {
-    List<ChatRoom> _chatRooms = new();
-    ChatRoom _selectedChatRoom = new();
 
-    public List<ChatMessage> _chatMessages { get; set; } = new();
-    private List<ChatUserModel> _chatUsers  = new();
+@code {
     [Parameter] public UserSession UserSession { get; set; }
     
+    private List<ChatRoom> _chatRooms = new();
+    private ChatRoom _selectedChatRoom = new();
+
+    private List<ChatMessage> _chatMessages { get; set; } = new();
     private HubConnection _hubConnection;
     
-    string _chatMessage;
-    MudTextField<string> _message;
-    private int _total;
-    private List<Chat> _chats;
+    private string _chatMessage;
+    
+    private int _pageNo = 0;
+    private int _pageSize = 10;
+    private bool _isBottom = false;
+    
+    bool _isReceivedMessage = false;
+    private ElementReference textAreaRef;
+    private DotNetObjectReference<ChatComponent> dotNetRef;
+    
     protected override async Task OnInitializedAsync()
     {
-        _chatUsers = await UserService.GetUsers();
-        
-        string baseUrl = NavManager.BaseUri;
+        var baseUrl = NavManager.BaseUri;
         var hubUrl = baseUrl.TrimEnd('/') + ChatHub.HubUrl;
         
         _hubConnection = new HubConnectionBuilder()
@@ -102,58 +99,20 @@
         await _hubConnection.StartAsync();
     }
 
-    int _pageNo = 0;
-    int _pageSize = 10;
-    bool _isBottom = false;
-    [JSInvokable]
-    public async Task OnScrollTopReached()
+    Task HubConnectionOnReconnecting(Exception arg)
     {
-        var temp = _pageNo + 1;
-        var chats = await LoadMessages(_selectedChatRoom.Id, temp, _pageSize);
-        if (chats.xIsNotEmpty())
-        {
-            RenderMessage(chats);
-            _pageNo++;
-            await JsRuntime.InvokeVoidAsync("scrollDownBy", 6);
-            await Task.Delay(500);
-            await InvokeAsync(StateHasChanged);
-        }
+        Console.WriteLine("HubConnectionOnReconnecting");
+        Console.WriteLine(arg.Message);
+        return Task.CompletedTask;
+    }    
+
+    Task HubConnectionOnReconnected(string arg)
+    {
+        Console.WriteLine("HubConnectionOnReconnected");
+        Console.WriteLine(arg);
+        return Task.CompletedTask;
     }
     
-    private ElementReference textAreaRef;
-    private DotNetObjectReference<ChatComponent> dotNetRef;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            dotNetRef = DotNetObjectReference.Create(this);
-            await JsRuntime.InvokeVoidAsync("preventEnterDefault", dotNetRef, textAreaRef);
-            _chatRooms =  (await ChatService.GetRooms(this.UserSession.UserId)).ToList();
-            
-            await JsRuntime.InvokeVoidAsync("initializeDraggablePopup", "popup");
-            await JsRuntime.InvokeVoidAsync("initializeResizablePopup", "popup");
-            await JsRuntime.InvokeVoidAsync("observeScrollTop", DotNetObjectReference.Create(this));
-        }
-
-        if (_isBottom)
-        {
-            await TrivialJs.ScrollToBottom("chat-container");
-            _isBottom = false;
-        }
-        
-        //await JsRuntime.InvokeVoidAsync("maintainScrollPosition", DotNetObjectReference.Create(this));
-
-
-        if (_isReceivedMessage)
-        {
-            await TrivialJs.ScrollToBottom("chat-container");
-            _isReceivedMessage = false;
-        }
-        
-    }
-
-    bool _isReceivedMessage = false;
     async Task ReceiveMessage(int roomId, string fromUserId, string fromUserName, string message, DateTime dt)
     {
         if (_selectedChatRoom.Id == roomId)
@@ -203,64 +162,55 @@
         }
 
         await InvokeAsync(StateHasChanged);
-    }
-
-        
-    Task HubConnectionOnReconnecting(Exception arg)
-    {
-        Console.WriteLine("HubConnectionOnReconnecting");
-        Console.WriteLine(arg.Message);
-        return Task.CompletedTask;
     }    
-
-    Task HubConnectionOnReconnected(string arg)
+    
+    [JSInvokable]
+    public async Task OnScrollTopReached()
     {
-        Console.WriteLine("HubConnectionOnReconnected");
-        Console.WriteLine(arg);
-        return Task.CompletedTask;
-    }
-
-    HashSet<string> _duplicate = new();
-    async Task SendMessage()
-    {
-        await _hubConnection.SendAsync("SendMessage", _selectedChatRoom.Id, UserSession.UserId, _chatMessage);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_hubConnection != null)
+        var temp = _pageNo + 1;
+        var chats = await LoadMessages(_selectedChatRoom.Id, temp, _pageSize);
+        if (chats.xIsNotEmpty())
         {
-            _hubConnection.Reconnected -= HubConnectionOnReconnected;
-            _hubConnection.Reconnecting -= HubConnectionOnReconnecting;
-            await _hubConnection.DisposeAsync();
+            RenderMessage(chats);
+            _pageNo++;
+            await JsRuntime.InvokeVoidAsync("scrollDownBy", 6);
+            await Task.Delay(500);
+            await InvokeAsync(StateHasChanged);
         }
-        Console.WriteLine("chat dispose");
-    }
-
-    private async Task Callback(KeyboardEventArgs e)
-    {   
-        if (e.Code is "Enter")
-        {
-            if (_chatMessage.xIsEmpty()) return;
-            
-            if (_duplicate.Add(_chatMessage))
-            {
-                await SendMessage();
-                await _message.Clear();
-            }
-            else
-            {
-                _duplicate.Clear();
-            }
-            Console.WriteLine("click");
-        }
-    }
-
-    void MessageChange(string str)
-    {
-        _chatMessage = str;
     }
     
+    [JSInvokable]
+    public async Task OnEnterPressed()
+    {
+        await SendMessage();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+            await JsRuntime.InvokeVoidAsync("preventEnterDefault", dotNetRef, textAreaRef);
+            _chatRooms =  (await ChatService.GetRooms(this.UserSession.UserId)).ToList();
+            
+            await JsRuntime.InvokeVoidAsync("initializeDraggablePopup", "popup");
+            await JsRuntime.InvokeVoidAsync("initializeResizablePopup", "popup");
+            await JsRuntime.InvokeVoidAsync("observeScrollTop", dotNetRef);
+        }
+
+        if (_isBottom)
+        {
+            await TrivialJs.ScrollToBottom("chat-container");
+            _isBottom = false;
+        }
+        
+        if (_isReceivedMessage)
+        {
+            await TrivialJs.ScrollToBottom("chat-container");
+            _isReceivedMessage = false;
+        }
+    }
+
     private async Task HandleKeyUp(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && e.ShiftKey)
@@ -276,12 +226,11 @@
         }
     }
     
-    [JSInvokable]
-    public async Task OnEnterPressed()
+    async Task SendMessage()
     {
-        await SendMessage();
+        await _hubConnection.SendAsync("SendMessage", _selectedChatRoom.Id, UserSession.UserId, _chatMessage);
     }
-
+    
     void RenderMessage(List<Chat> chats)
     {
         foreach (var chat in chats)
@@ -316,7 +265,6 @@
     async Task<List<Chat>> LoadMessages(int roomId, int pageNo, int pageSize)
     {
         var chats = await this.ChatService.GetChats(roomId, pageNo, pageSize);
-        _total = chats.Item1;
         return chats.Item2.ToList();
     }
 
@@ -324,7 +272,6 @@
     {
         _selectedChatRoom = room;
         _pageNo = 1;
-        _total = 0;
         _chatMessages.Clear();
         var chats = await LoadMessages(_selectedChatRoom.Id, _pageNo, _pageSize);
         _isBottom = true;
@@ -370,4 +317,14 @@
         }
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+        {
+            _hubConnection.Reconnected -= HubConnectionOnReconnected;
+            _hubConnection.Reconnecting -= HubConnectionOnReconnecting;
+            await _hubConnection.DisposeAsync();
+        }
+        Console.WriteLine("chat dispose");
+    }
 }
