@@ -212,6 +212,33 @@
         _noticeHubConnection.Reconnecting += HubConnectionOnReconnecting;        
         _noticeHubConnection.On<string, string, string>("ReceiveNotification", ReceiveNotification);
         await _noticeHubConnection.StartAsync();
+        
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+        if(!user.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo($"/signin");
+            return;
+        }
+
+        var userId = state.User.Claims.First(m => m.Type == ClaimTypes.NameIdentifier).Value;
+        var email = state.User.Claims.First(m => m.Type == ClaimTypes.Email).Value;
+        var name = state.User.Claims.First(m => m.Type == ClaimTypes.Name).Value;
+        var key = state.User.Claims.First(m => m.Type == ClaimTypes.PrimarySid).Value;
+        var phone = state.User.Claims.First(m => m.Type == ClaimTypes.MobilePhone).Value;
+        var role = state.User.Claims.First(m => m.Type == ClaimTypes.Role).Value;
+
+        _userSession = new UserSession()
+        {
+            UserId = userId,
+            Email = email,
+            Name = name,
+            Role = role,
+            UserKey = key,
+            Phone = phone,
+        };
+        _noticeMessages = await NotificationService.GetNotifications(userId);
+        _noticeVisible = _noticeMessages.Count > 0;
     }
     
     Task HubConnectionOnReconnecting(Exception arg)
@@ -232,30 +259,7 @@
     {
         if (firstRender)
         {
-            var state = await AuthStateProvider.GetAuthenticationStateAsync();
-            var user = state.User;
-            if(!user.Identity.IsAuthenticated)
-            {
-                NavigationManager.NavigateTo($"/signin");
-                return;
-            }
-
-            var userId = state.User.Claims.First(m => m.Type == ClaimTypes.NameIdentifier).Value;
-            var email = state.User.Claims.First(m => m.Type == ClaimTypes.Email).Value;
-            var name = state.User.Claims.First(m => m.Type == ClaimTypes.Name).Value;
-            var key = state.User.Claims.First(m => m.Type == ClaimTypes.PrimarySid).Value;
-            var phone = state.User.Claims.First(m => m.Type == ClaimTypes.MobilePhone).Value;
-            var role = state.User.Claims.First(m => m.Type == ClaimTypes.Role).Value;
-
-            _userSession = new UserSession()
-            {
-                UserId = userId,
-                Email = email,
-                Name = name,
-                Role = role,
-                UserKey = key,
-                Phone = phone,
-            };
+            
 
             var currentCulture = await ProtectedSessionStorage.GetAsync<string>("CurrentCulture");
             if (currentCulture.Success.xIsFalse())
@@ -265,12 +269,6 @@
             }
             
             _primaryColor = await Color.Primary.ToMudColorAsync(JSRuntime);
-            
-            await JSRuntime.InvokeVoidAsync("initializeDraggablePopup", "popup");
-            await JSRuntime.InvokeVoidAsync("initializeResizablePopup", "popup");
-
-            _noticeMessages = await NotificationService.GetNotifications(userId);
-            _noticeVisible = _noticeMessages.Count > 0;
             await InvokeAsync(StateHasChanged);
         }
     }

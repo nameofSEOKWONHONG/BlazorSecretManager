@@ -14,17 +14,19 @@ namespace BlazorSecretManager.Controllers;
 [Route("api/[controller]")]
 public class NoticeController : ControllerBase
 {
+    private readonly INoticeService _service;
     private readonly IBackgroundJobClient _backgroundJobClient;
 
-    public NoticeController(IBackgroundJobClient backgroundJobClient)
+    public NoticeController(INoticeService service,IBackgroundJobClient backgroundJobClient)
     {
+        _service = service;
         _backgroundJobClient = backgroundJobClient;
     }
     
     [HttpPost]
     public IActionResult SendNotice([FromBody]Notification notification)
     {
-        _backgroundJobClient.Enqueue<NoticeService>(m => m.BroadcastNotice(notification));
+        _backgroundJobClient.Enqueue(() => _service.BroadcastNotice(notification));
         return Ok();
     }
 }
@@ -47,6 +49,7 @@ public class NoticeService : INoticeService
 
     public async Task BroadcastNotice(Notification message)
     {
+        await Task.Delay(1000);
         var id = await _notificationService.AddNotification(message);
         message.Id = id;
         await _hub.Clients.All.SendAsync("ReceiveNotification", message.UserId, message.Type, message.xSerialize());   

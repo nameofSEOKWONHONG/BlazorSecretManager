@@ -1,47 +1,58 @@
+@using BlazorSecretManager.Components.Dialogs
+@using BlazorSecretManager.Entities
 @using BlazorSecretManager.Hubs
 @using BlazorSecretManager.Hubs.Dtos
 @using BlazorSecretManager.Infrastructure
 @using BlazorSecretManager.Services.Auth
+@using BlazorSecretManager.Services.Messages
 @using BlazorTrivialJs
 @using eXtensionSharp
+@using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.SignalR.Client
-@using TagLib.Ape
 @implements IAsyncDisposable
 
 <MudGrid>
     <MudItem xs="3" sm="3">
-        <MudList T="ChatUserModel" @bind-SelectedValue="_selectedChatUser">
-            @foreach (var item in _chatUsers)
-            {
-                if (item.Id != UserSession.UserId)
+        <MudStack>
+            <MudStack Row="true">
+                <MudText Typo="Typo.h6" Style="align-self: center;">CHAT</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.PersonSearch" OnClick="ShowUserSearchDialog"/>            
+            </MudStack>
+            <MudList T="ChatRoom" SelectedValue="_selectedChatRoom" SelectedValueChanged="OnSelectedChatRoom" Dense="true">
+                @foreach (var item in _chatRooms)
                 {
-                    <MudListItem Value="item">@item.Name</MudListItem>    
-                }   
-            }
-        </MudList>
+                    <MudListItem Value="item">@item.Name</MudListItem>
+                }
+            </MudList>
+        </MudStack>
     </MudItem>
     <MudItem xs="9" sm="9">
         <MudPaper Elevation="1">
-            <div id="chatContainer" style="height: 450px; overflow-y: auto;">
-                @if (_selectedChatUser.Messages.xIsNotEmpty())
+            <div id="chat-container" style="height: 450px; overflow-y: scroll;">
+                <div id="scroll-top" style="height:1px;"></div>
+                @foreach (var item in _chatMessages.xToList())
                 {
-                    @foreach (var item in _selectedChatUser.Messages.xToList())
-                    {
-                        <MudChat ChatPosition=item.Position Color=item.Color>
-                            <MudChatHeader Name="@item.Email" Time="@item.ReceivedDate"/>
-                            <MudChatBubble>
-                                <pre>@item.Message</pre>
-                            </MudChatBubble>
-                        </MudChat>
-                    }                    
+                    <MudChat ChatPosition=item.Position Color=item.Color>
+                        @if (item.Position == ChatBubblePosition.Start)
+                        {
+                            <MudChatHeader Name="@item.Name" Time="@item.ReceivedDate"/>
+                        }
+                        else
+                        {
+                            <MudChatHeader Time="@item.ReceivedDate"/>
+                        }
+                        <MudChatBubble>
+                            <pre>@item.Message</pre>
+                        </MudChatBubble>
+                    </MudChat>
                 }
             </div>
         </MudPaper>
         <br/>
         <MudStack Row="true">
-            <textarea id="chatTextArea" @ref="textAreaRef" @bind="@_chatMessage" @bind:event="oninput" @onkeydown="HandleKeyDown" @onkeyup="HandleKeyUp" class="chat-input"
-                placeholder="input chat message"
-                rows="4" style="width:100%;"></textarea>
+                <textarea id="chatTextArea" @ref="textAreaRef" @bind="@_chatMessage" @bind:event="oninput" @onkeyup="HandleKeyUp" class="chat-input"
+                          placeholder="input chat message"
+                          rows="4" style="width:100%;"></textarea>
             @* <MudTextField T="string" *@
             @*               Label="MSG" *@
             @*               ValueChanged="MessageChange" *@
@@ -56,8 +67,12 @@
 @inject IUserService UserService;
 @inject ITrivialJs TrivialJs;
 @inject IJSRuntime JsRuntime;
-
+@inject IChatService ChatService;
+@inject IDialogService DialogService;
 @code {
+    List<ChatRoom> _chatRooms = new();
+    ChatRoom _selectedChatRoom = new();
+
     public List<ChatMessage> _chatMessages { get; set; } = new();
     private List<ChatUserModel> _chatUsers  = new();
     [Parameter] public UserSession UserSession { get; set; }
@@ -65,15 +80,12 @@
     private HubConnection _hubConnection;
     
     string _chatMessage;
-    ChatUserModel _selectedChatUser = new();
-
     MudTextField<string> _message;
-    private List<ChatMessagePerUser> _chatMessagesPerUser = new();
-    
+    private int _total;
+    private List<Chat> _chats;
     protected override async Task OnInitializedAsync()
     {
         _chatUsers = await UserService.GetUsers();
-        //load messages
         
         string baseUrl = NavManager.BaseUri;
         var hubUrl = baseUrl.TrimEnd('/') + ChatHub.HubUrl;
@@ -89,6 +101,24 @@
 
         await _hubConnection.StartAsync();
     }
+
+    int _pageNo = 0;
+    int _pageSize = 10;
+    bool _isBottom = false;
+    [JSInvokable]
+    public async Task OnScrollTopReached()
+    {
+        var temp = _pageNo + 1;
+        var chats = await LoadMessages(_selectedChatRoom.Id, temp, _pageSize);
+        if (chats.xIsNotEmpty())
+        {
+            RenderMessage(chats);
+            _pageNo++;
+            await JsRuntime.InvokeVoidAsync("scrollDownBy", 6);
+            await Task.Delay(500);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
     
     private ElementReference textAreaRef;
     private DotNetObjectReference<ChatComponent> dotNetRef;
@@ -99,41 +129,53 @@
         {
             dotNetRef = DotNetObjectReference.Create(this);
             await JsRuntime.InvokeVoidAsync("preventEnterDefault", dotNetRef, textAreaRef);
+            _chatRooms =  (await ChatService.GetRooms(this.UserSession.UserId)).ToList();
+            
+            await JsRuntime.InvokeVoidAsync("initializeDraggablePopup", "popup");
+            await JsRuntime.InvokeVoidAsync("initializeResizablePopup", "popup");
+            await JsRuntime.InvokeVoidAsync("observeScrollTop", DotNetObjectReference.Create(this));
+        }
 
+        if (_isBottom)
+        {
+            await TrivialJs.ScrollToBottom("chat-container");
+            _isBottom = false;
         }
         
-        if (_selectedChatUser.Messages.Count > 0) // 메시지가 있을 때만 실행
-        {
-            await TrivialJs.ScrollToBottom("chatContainer");
-        }
+        //await JsRuntime.InvokeVoidAsync("maintainScrollPosition", DotNetObjectReference.Create(this));
+        
+
+        
     }
 
-    async Task ReceiveMessage(int hash, string from, string to, string message, DateTime dt)
+    async Task ReceiveMessage(int roomId, string fromUserId, string fromUserName, string message, DateTime dt)
     {
-        if (_selectedChatUser.Messages.xIsEmpty()) _selectedChatUser.Messages = new();
-        if (to == UserSession.Email)
+        if (_selectedChatRoom.Id == roomId)
         {
-            _selectedChatUser.Messages.Add(new ChatMessage()
+            if (fromUserId == UserSession.UserId)
             {
-                Email = to,
-                Position = UserSession.Email == from ? ChatBubblePosition.End : ChatBubblePosition.Start,
-                Color = UserSession.Email == from ? Color.Secondary : Color.Primary,
-                Message = message,
-                ReceivedDate = $"{dt.ToLongDateString()} {dt.ToLongTimeString()}"
-            });
-            await _hubConnection.SendAsync("ConfirmMessage", hash);
-        }
-        else if (from == UserSession.Email)
-        {
-            _selectedChatUser.Messages.Add(new ChatMessage()
+                _chatMessages.Add(new ChatMessage()
+                {
+                    Name = string.Empty,
+                    Position = UserSession.UserId == fromUserId ? ChatBubblePosition.End : ChatBubblePosition.Start,
+                    Color = UserSession.UserId == fromUserId ? Color.Secondary : Color.Primary,
+                    Message = message,
+                    ReceivedDate = $"{dt.ToLongDateString()} {dt.ToLongTimeString()}"
+                });
+            }
+            else
             {
-                Email = from,
-                Position = UserSession.Email == from ? ChatBubblePosition.End : ChatBubblePosition.Start,
-                Color = UserSession.Email == from ? Color.Secondary : Color.Primary,
-                Message = message,
-                ReceivedDate = $"{dt.ToLongDateString()} {dt.ToLongTimeString()}"
-            });
+                _chatMessages.Add(new ChatMessage()
+                {
+                    Name = fromUserName,
+                    Position = UserSession.UserId == fromUserId ? ChatBubblePosition.End : ChatBubblePosition.Start,
+                    Color = UserSession.UserId == fromUserId ? Color.Secondary : Color.Primary,
+                    Message = message,
+                    ReceivedDate = $"{dt.ToLongDateString()} {dt.ToLongTimeString()}"
+                });
+            }            
         }
+        //await TrivialJs.ScrollToBottom("chat-container");
         await InvokeAsync(StateHasChanged);
     }
 
@@ -155,7 +197,7 @@
     HashSet<string> _duplicate = new();
     async Task SendMessage()
     {
-        await _hubConnection.SendAsync("SendMessage", UserSession.Email, _selectedChatUser.Email, _chatMessage);
+        await _hubConnection.SendAsync("SendMessage", _selectedChatRoom.Id, UserSession.UserId, _chatMessage);
     }
 
     public async ValueTask DisposeAsync()
@@ -193,14 +235,6 @@
         _chatMessage = str;
     }
     
-    private void HandleKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter" && e.ShiftKey)
-        {
-
-        }
-    }
-
     private async Task HandleKeyUp(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && e.ShiftKey)
@@ -222,18 +256,91 @@
         await SendMessage();
     }
 
-    private void SendMessage2()
+    void RenderMessage(List<Chat> chats)
     {
-        if (!string.IsNullOrWhiteSpace(_chatMessage))
+        foreach (var chat in chats)
         {
-            Console.WriteLine($"[채팅 전송]: {_chatMessage}");
-            _chatMessage = ""; // 메시지 초기화
+            if (chat.FromUserId == UserSession.UserId)
+            {
+                _chatMessages.Insert(0, new ChatMessage()
+                {
+                    Name = string.Empty,
+                    Position = UserSession.UserId == chat.FromUserId ? ChatBubblePosition.End : ChatBubblePosition.Start,
+                    Color = UserSession.UserId == chat.FromUserId ? Color.Secondary : Color.Primary,
+                    Message = chat.Message,
+                    ReceivedDate = $"{chat.CreatedAt.ToLongDateString()} {chat.CreatedAt.ToLongTimeString()}"
+                });
+            }     
+            else
+            {
+                _chatMessages.Insert(0, new ChatMessage()
+                {
+                    Name = chat.FromUserName,
+                    Position = UserSession.UserId == chat.FromUserId ? ChatBubblePosition.End : ChatBubblePosition.Start,
+                    Color = UserSession.UserId == chat.FromUserId ? Color.Secondary : Color.Primary,
+                    Message = chat.Message,
+                    ReceivedDate = $"{chat.CreatedAt.ToLongDateString()} {chat.CreatedAt.ToLongTimeString()}"
+                });
+            }
+        }
+        StateHasChanged();
+        
+    }
+
+    async Task<List<Chat>> LoadMessages(int roomId, int pageNo, int pageSize)
+    {
+        var chats = await this.ChatService.GetChats(roomId, pageNo, pageSize);
+        _total = chats.Item1;
+        return chats.Item2.ToList();
+    }
+
+    async Task OnSelectedChatRoom(ChatRoom room)
+    {
+        _selectedChatRoom = room;
+        _pageNo = 1;
+        _total = 0;
+        _chatMessages.Clear();
+        var chats = await LoadMessages(_selectedChatRoom.Id, _pageNo, _pageSize);
+        _isBottom = true;
+        RenderMessage(chats);
+    }
+
+    private async Task ShowUserSearchDialog(MouseEventArgs obj)
+    {
+        var parameters = new DialogParameters()
+        {
+            {nameof(UserSession), UserSession},
+        };
+        var options = new DialogOptions()
+        {
+            FullWidth = true,
+            MaxWidth = MaxWidth.Medium
+        };
+        var dlg = await DialogService.ShowAsync<ChatUserSearchDialog>(string.Empty, parameters, options);
+        var result = await dlg.Result;
+        if (!result.Canceled)
+        {
+            var roomModel = result.Data.xAs<ChatUserSearchDialog.CreateRoomModel>();
+            if(roomModel.RoomName.xIsEmpty()) return;
+            if(roomModel.RoomUsers.xIsEmpty()) return;
+
+            var roomUsers = roomModel.RoomUsers.ToList();
+            var exists = roomUsers.FirstOrDefault(m => m.Id == UserSession.UserId);
+            if (exists.xIsNotEmpty())
+            {
+                roomUsers.Remove(exists);    
+            }
+
+            var id = await this.ChatService.CreateRoom(this.UserSession.UserId, roomModel.RoomName, roomUsers.Select(m => m.Id).ToArray());
+            _chatRooms.Add(new ChatRoom()
+            {
+                Id = id,
+                Name = roomModel.RoomName,
+                OwnerId = this.UserSession.UserId,
+                AttendUsers = roomUsers.Select(m => m.Id).xJoin(","),
+                CreatedAt = DateTime.Now,
+            });
         }
     }
 
-    class ChatMessagePerUser
-    {
-        public string User { get; set; }
-        public List<ChatMessage> ChatMessages { get; set; }
-    }
 }

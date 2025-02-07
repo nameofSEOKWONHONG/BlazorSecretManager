@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using BlazorSecretManager.Components;
 using BlazorSecretManager.Components.Pages.Secret.ViewModels;
 using BlazorSecretManager.Components.Pages.User.ViewModels;
+using BlazorSecretManager.Controllers;
 using BlazorSecretManager.Entities;
 using BlazorSecretManager.Hubs;
 using BlazorSecretManager.Infrastructure;
@@ -113,6 +114,8 @@ public static class DependencyInjection
         services.AddHangfireServer();
 
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<INoticeService, NoticeService>();
+        services.AddScoped<IChatService, ChatService>();
     }
 
     public static void UseMudSecretManager(this WebApplication app)

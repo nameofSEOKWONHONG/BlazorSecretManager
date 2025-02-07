@@ -20,6 +20,7 @@ public class AppDbContext : IdentityDbContext
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new MenuConfiguration());
         modelBuilder.ApplyConfiguration(new NotificationConfiguration());
+        modelBuilder.ApplyConfiguration(new ChatConfiguration());
     }
 
     public void EnsureCreated()
@@ -31,7 +32,6 @@ public class AppDbContext : IdentityDbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Menu> Menus { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<ChatRoom> ChatRooms { get; set; }
+    public DbSet<Chat> Chats { get; set; }
 }
-
-
-

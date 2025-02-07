@@ -1,0 +1,87 @@
+@using MudBlazor.Extensions.Helper
+@using BlazorSecretManager.Components.Custom
+@using BlazorSecretManager.Entities
+@using BlazorSecretManager.Infrastructure
+@using BlazorSecretManager.Services.Auth
+@using eXtensionSharp
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Style="height: 400px;">
+            <MudForm @ref="form" @bind-IsValid="@success">
+                <MudList T="User" @bind-SelectedValues="_createRoomModel.RoomUsers" SelectionMode="SelectionMode.MultiSelection">
+                    <MudListSubheader>
+                        <MudText>Search Member</MudText>
+                        <MudTextField T="string" @bind-Value="_createRoomModel.RoomName" Label="Room Title" Required="true"/>
+                        <MudTextField T="string" Value="_searchKeyword" OnKeyUp="OnSearch" Label="Name, Email" For="@(() => _searchKeyword)"/>
+                    </MudListSubheader>
+                    @foreach (var user in _users)
+                    {
+                        <MudListItem Value="user">
+                            <AvatarContent>
+                                <MudAvatar>
+                                    <MudAvatar Color="Color.Tertiary">@user.UserName.First()</MudAvatar>
+                                </MudAvatar>
+                            </AvatarContent>
+                            <ChildContent>
+                                @user.UserName
+                            </ChildContent>
+                        </MudListItem>
+                    }
+                </MudList>
+            </MudForm>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Select</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@inject IUserService UserService;
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+    async Task Submit()
+    {
+        await form.Validate();
+        if (form.IsValid)
+        {
+            MudDialog.CloseAnimatedIf(DialogResult.Ok(_createRoomModel));    
+        }
+    }
+    void Cancel() => MudDialog.CancelAnimatedIf();
+    
+    [Parameter] public UserSession UserSession { get; set; }
+    
+    string _searchKeyword;
+    List<User> _users = new();
+    CreateRoomModel _createRoomModel = new();
+    
+    bool success;
+    MudForm form;
+
+    private async Task OnSearch(KeyboardEventArgs obj)
+    {
+        if (obj.Code is "Enter")
+        {
+            var users = await UserService.GetUsers(_searchKeyword, _searchKeyword, 0, 99);
+            var temp = users.Datum.ToList();
+            if (temp.xIsNotEmpty())
+            {
+                var exists = temp.FirstOrDefault(m => m.Id == this.UserSession.UserId);
+                if (exists.xIsNotEmpty())
+                {
+                    temp.Remove(exists);
+                }
+            }
+
+            _users = temp;
+        }
+    }
+    
+    public class CreateRoomModel
+    {
+        public string RoomName { get; set; }
+        public IReadOnlyCollection<User> RoomUsers { get; set; }
+    }
+}

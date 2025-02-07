@@ -1,26 +1,28 @@
 ﻿using System.Collections.Concurrent;
+using BlazorSecretManager.Services.Messages;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlazorSecretManager.Hubs;
 
 public class ChatHub : Hub
 {
+    private readonly IChatService _chatService;
     private readonly AppDbContext _dbContext;
     public const string HubUrl = "/chat";
-    public ChatHub(AppDbContext dbContext)
+    public ChatHub(IChatService chatService, AppDbContext dbContext)
     {
+        _chatService = chatService;
         _dbContext = dbContext;
     }
     
-    public async Task SendMessage(string from, string to, string message)
+    public async Task SendMessage(int roomId, string fromUserId, string message)
     {
-        var src = $"{from}|{to}|{message}";
-        var hash = src.GetHashCode();
-        await Clients.All.SendAsync("ReceiveMessage", hash, from, to, message, DateTime.Now);
-    }
-
-    public void ConfirmMessage(int hash)
-    {
+        await _chatService.AddChat(roomId, fromUserId, message);
+        var user = await _dbContext.Users.Where(m => m.Id == fromUserId)
+            .Select(m => new {m.UserName})
+            .FirstOrDefaultAsync();
+        await Clients.All.SendAsync("ReceiveMessage", roomId, fromUserId, user.UserName, message, DateTime.Now);
     }
     
     // 그룹에 사용자 추가

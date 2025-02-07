@@ -6,7 +6,7 @@ public class ChatMessage
 {
     public ChatBubblePosition Position { get; set; }
     public Color Color { get; set; }
-    public string Email { get; set; }
+    public string Name { get; set; }
     public string Message { get; set; }
     public string ReceivedDate { get; set; }
 }

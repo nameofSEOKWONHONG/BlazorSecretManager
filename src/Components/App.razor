@@ -93,6 +93,35 @@
         });
     };
 
+    window.observeScrollTop = (dotNetHelper) => {
+        let chatContainer = document.getElementById("chat-container");
+        let scrollTopDetector = document.getElementById("scroll-top");
+
+        let observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                dotNetHelper.invokeMethodAsync("OnScrollTopReached");
+            }
+        }, { root: chatContainer, threshold: 0.1 });
+
+        observer.observe(scrollTopDetector);
+    };
+
+    window.maintainScrollPosition = (element) => {
+        let oldHeight = element.scrollHeight;
+        setTimeout(() => {
+            element.scrollTop = element.scrollHeight - oldHeight;
+        }, 0);
+    };
+
+    window.scrollDownBy = (pixels) => {
+        let chatContainer = document.getElementById("chat-container");
+        if (chatContainer) {
+            chatContainer.scrollTop += pixels;
+        }
+    };
+
+
+
 </script>
 </body>
 

@@ -1,5 +1,6 @@
 using System.Globalization;
 using BlazorSecretManager;
+using Hangfire;
 using Microsoft.AspNetCore.Localization;
 
 #pragma warning disable EXTEXP0018
@@ -26,6 +27,15 @@ app.UseMudSecretManager();
 // };
 //
 // app.UseRequestLocalization(localizationOptions);
+
+var lifetime = app.Services.GetService<IHostApplicationLifetime>();
+lifetime.ApplicationStopping.Register(() =>
+{
+    Console.WriteLine("Hangfire 서버를 안전하게 종료합니다...");
+    var backgroundJobServer = app.Services.GetRequiredService<BackgroundJobServer>();
+    backgroundJobServer.Dispose();
+    Console.WriteLine("Hangfire 서버 종료 완료.");
+});
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
