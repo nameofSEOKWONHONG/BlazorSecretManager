@@ -24,6 +24,11 @@ public class ChatHub : Hub
             .FirstOrDefaultAsync();
         await Clients.All.SendAsync("ReceiveMessage", roomId, fromUserId, user.UserName, message, DateTime.Now);
     }
+
+    public async Task CreateRoom(int roomId, string ownerId, string roomName, string attendUsers)
+    {
+        await Clients.All.SendAsync("ReceiveCreateRoom", roomId, ownerId, roomName, attendUsers);
+    }
     
     // 그룹에 사용자 추가
     public async Task JoinGroup(string groupName)

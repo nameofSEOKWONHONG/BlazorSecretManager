@@ -1,5 +1,6 @@
 using BlazorSecretManager.Entities;
 using eXtensionSharp;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlazorSecretManager.Services.Messages;

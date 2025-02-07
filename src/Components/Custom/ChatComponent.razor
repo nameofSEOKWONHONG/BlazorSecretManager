@@ -7,7 +7,6 @@
 @using BlazorSecretManager.Services.Messages
 @using BlazorTrivialJs
 @using eXtensionSharp
-@using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
 
@@ -96,6 +95,7 @@
             .Build();
 
         _hubConnection.On<int, string, string, string, DateTime>("ReceiveMessage", ReceiveMessage);
+        _hubConnection.On<int, string, string, string>("ReceiveCreateRoom", ReceiveCreateRoom);
         _hubConnection.Reconnected += HubConnectionOnReconnected;
         _hubConnection.Reconnecting += HubConnectionOnReconnecting;
 
@@ -143,11 +143,17 @@
         }
         
         //await JsRuntime.InvokeVoidAsync("maintainScrollPosition", DotNetObjectReference.Create(this));
-        
 
+
+        if (_isReceivedMessage)
+        {
+            await TrivialJs.ScrollToBottom("chat-container");
+            _isReceivedMessage = false;
+        }
         
     }
 
+    bool _isReceivedMessage = false;
     async Task ReceiveMessage(int roomId, string fromUserId, string fromUserName, string message, DateTime dt)
     {
         if (_selectedChatRoom.Id == roomId)
@@ -175,7 +181,27 @@
                 });
             }            
         }
-        //await TrivialJs.ScrollToBottom("chat-container");
+
+        _isReceivedMessage = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task ReceiveCreateRoom(int roomId, string ownerId, string roomName, string attendUsers)
+    {
+        var split = attendUsers.xSplit(",");
+        if (split.Contains(UserSession.UserId))
+        {
+            var newRoom = new ChatRoom()
+            {
+                Id = roomId,
+                OwnerId = ownerId,
+                Name = roomName,
+                AttendUsers = attendUsers,
+                CreatedAt = DateTime.Now
+            };
+            _chatRooms.Add(newRoom);
+        }
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -340,6 +366,7 @@
                 AttendUsers = roomUsers.Select(m => m.Id).xJoin(","),
                 CreatedAt = DateTime.Now,
             });
+            await _hubConnection.SendAsync("CreateRoom", id, this.UserSession.UserId, roomModel.RoomName, roomModel.RoomUsers.Select(m => m.Id).xJoin(","));
         }
     }
 
