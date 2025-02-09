@@ -20,10 +20,8 @@ public class UserListViewModel : MudDataGridViewModel<Entities.User, UserSearchM
         _userService = userService;
     }
 
-    public override void Initialize(MudDataGrid<Entities.User> dataGrid)
+    public override void Initialize()
     {
-        base.Initialize(dataGrid);
-        
         this.OnServerReload = async (state) =>
         {
             var result = await _userService.GetUsers(this.SearchModel.Email, this.SearchModel.Name, state.Page,
@@ -51,10 +49,8 @@ public class UserListViewModel : MudDataGridViewModel<Entities.User, UserSearchM
         };
     }
 
-    public override async Task InitializeAsync(MudDataGrid<Entities.User> dataGrid)
-    {
-        await base.InitializeAsync(dataGrid);
-        
+    public override async Task InitializeAsync()
+    {   
         this.UserSession = await _userService.GetUserSession();
     }
 

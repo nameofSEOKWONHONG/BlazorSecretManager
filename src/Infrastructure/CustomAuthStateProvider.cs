@@ -1,7 +1,9 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
+using System.Runtime.InteropServices;
 using System.Security.Claims;
 using BlazorSecretManager.Services.Auth.Abstracts;
 using eXtensionSharp;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
@@ -12,23 +14,22 @@ namespace BlazorSecretManager.Infrastructure;
 public class CustomAuthStateProvider : AuthenticationStateProvider
 {
     private readonly ProtectedSessionStorage _protectedSessionStore;
+    private readonly NavigationManager _navigationManager;
     private readonly IUserRepository _userRepository;
-    private CircuitHandler _circuitHandler;
 
     public CustomAuthStateProvider(ProtectedSessionStorage protectedSessionStore,
-        IUserRepository userRepository,
-        CircuitHandler circuitHandler)
+        NavigationManager navigationManager,
+        IUserRepository userRepository)
     {
         _protectedSessionStore = protectedSessionStore;
+        _navigationManager = navigationManager;
         _userRepository = userRepository;
-        _circuitHandler = circuitHandler;
     }
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        var circuitHandler = _circuitHandler.xAs<CustomCircuitHandler>();
-        if (circuitHandler.xAs<CustomCircuitHandler>().IsPrerendering.xIsFalse())
-        {
+        // if (_navigationManager.Uri.StartsWith("http"))
+        // {
             try
             {
                 var tokenString = await _protectedSessionStore.GetAsync<string>(Constants.JwtCacheKey);
@@ -58,8 +59,12 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
             {
                 Console.WriteLine(e.Message);
             }
-        }
-        
+        // }
+        // else
+        // {
+        //     Console.WriteLine("Server");
+        //     //todo:...
+        // }
         
         return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
     }

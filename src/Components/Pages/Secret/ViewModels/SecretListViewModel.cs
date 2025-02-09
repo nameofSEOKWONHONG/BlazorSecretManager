@@ -31,10 +31,8 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
         _trivialJs = trivialJs;
     }
 
-    public override void Initialize(MudDataGrid<Entities.Secret> dataGrid)
-    {
-        base.Initialize(dataGrid);
-        
+    public override void Initialize()
+    {   
         this.OnServerReload = async state =>
         {
             var results  = await _service.GetSecrets(this.SearchModel.Title, this.SearchModel.Description, state.Page, state.PageSize);

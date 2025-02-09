@@ -105,12 +105,6 @@
             ConnectionId = CircuitHandler.xAs<CustomCircuitHandler>().ConnectionId
         };
         
-        if (UserConnectionService.AlreadyExists(userId))
-        {
-            Snackbar.Add("request administrator", Severity.Info);
-            return;
-        }
-        
         UserConnectionService.AddUser(session);
         
         await ProtectedSessionStore.SetAsync(Constants.JwtCacheKey, result.Data);
