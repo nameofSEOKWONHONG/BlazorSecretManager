@@ -6,6 +6,7 @@ using BlazorSecretManager.Services.Auth;
 using BlazorSecretManager.Services.Secrets.Abstracts;
 using BlazorTrivialJs;
 using eXtensionSharp;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using MudBlazor;
 using MudComposite.Base;
@@ -21,10 +22,10 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
     private readonly IUserService _userService;
     private readonly ITrivialJs _trivialJs;
 
-    public SecretListViewModel(MudViewModelItem mudViewModelItem,
+    public SecretListViewModel(MudUtility mudUtility,
         ISecretService service,
         IUserService userService,
-        ITrivialJs trivialJs) : base(mudViewModelItem)
+        ITrivialJs trivialJs): base( mudUtility )
     {
         _service = service;
         _userService = userService;
@@ -57,7 +58,7 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
             var title = string.Empty;
             if (item.Id > 0) title = "Modify";
             else title = "Create";
-            var dlg = await this.Utility.DialogService.ShowAsync<SecretDialog>(title, parameters, options);
+            var dlg = await this.MudUtility.DialogService.ShowAsync<SecretDialog>(title, parameters, options);
             var result = await dlg.Result;
             if (!result.Canceled)
             {
@@ -70,30 +71,30 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
         this.OnSaveAfter = null;
         this.OnClick = async (id, obj) =>
         {
+            var item = obj.xAs<Entities.Secret>();
             if (id == "test")
             {
                 if (this.SelectedItem.xIsEmpty())
                 {
-                    await this.Utility.DialogService.ShowMessageBox(id, "selected item is empty");    
+                    await this.MudUtility.DialogService.ShowMessageBox(id, "selected item is empty");    
                 }
                 else
                 {
-                    await this.Utility.DialogService.ShowMessageBox(id, $"item title: {this.SelectedItem.Title}");    
+                    await this.MudUtility.DialogService.ShowMessageBox(id, $"item title: {this.SelectedItem.Title}");    
                 }
             }
             else if (id == "getUrl")
             {
-                var item = obj.xAs<Entities.Secret>();
                 var url = await this._service.GetSecretUrl(item.Id);
                 await _trivialJs.CopyToClipboard(url);
-                this.Utility.Snackbar.Add("The URL has been copied", Severity.Success);
+                this.MudUtility.Snackbar.Add("The URL has been copied", Severity.Success);
             }
             else if (id == "notice")
             {
                 var userSession = await _userService.GetUserSession();
                 using var client = new HttpClient();
-                client.BaseAddress = new Uri(this.Utility.NavigationManager.BaseUri);
-                var item = new Notification()
+                client.BaseAddress = new Uri(this.MudUtility.NavigationManager.BaseUri);
+                var notification = new Notification()
                 {
                     UserId = userSession.UserId,
                     Type = "A",
@@ -102,9 +103,31 @@ public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretS
                     Extra = "Notice",
                     PublishDate = DateTime.Now
                 };
-                var context = new StringContent(item.xSerialize(), Encoding.UTF8, "application/json");
+                var context = new StringContent(notification.xSerialize(), Encoding.UTF8, "application/json");
                 var res = await client.PostAsync("api/notice", context);
                 res.EnsureSuccessStatusCode();
+            }
+            else if (id == "update")
+            {
+                var parameters = new DialogParameters()
+                {
+                    { "Secret", item }
+                };
+                var options = new DialogOptions()
+                {
+                    FullWidth = true,
+                    MaxWidth = MaxWidth.Medium
+                };
+                var title = string.Empty;
+                if (item.Id > 0) title = "Modify";
+                else title = "Create";
+                var dlg = await this.MudUtility.DialogService.ShowAsync<SecretDialog>(title, parameters, options);
+                var result = await dlg.Result;
+                if (!result.Canceled)
+                {
+                    await _service.AddOrUpdate(item);
+                }
+                dlg.Close();
             }
         };
     }

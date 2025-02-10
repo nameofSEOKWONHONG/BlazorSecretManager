@@ -73,6 +73,7 @@ public static class DependencyInjection
         });
         services.AddMudComposite();
         services.AddMudServicesWithExtensions(c => c.WithoutAutomaticCssLoading());
+        services.AddMudMarkdownServices();
 
         services.AddControllers();
 

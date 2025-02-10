@@ -38,7 +38,7 @@ public class Chat
     public int Id { get; set; }
     public string FromUserId { get; set; }
     public string FromUserName { get; set; }
-    public string Message { get; set; }
+    public byte[] Message { get; set; }
     public DateTime CreatedAt { get; set; }
     public int ChatRoomId { get; set; }
     public ChatRoom ChatRoom { get; set; }
@@ -58,7 +58,6 @@ public class ChatConfiguration : IEntityTypeConfiguration<Chat>
             .HasMaxLength(100)
             .IsRequired();
         builder.Property(x => x.Message)
-            .HasMaxLength(8000)
             .IsRequired();
         builder.Property(x => x.CreatedAt).IsRequired();
         builder.HasOne(x => x.ChatRoom)
@@ -66,4 +65,13 @@ public class ChatConfiguration : IEntityTypeConfiguration<Chat>
             .HasForeignKey(x => x.ChatRoomId)
             .OnDelete(DeleteBehavior.Cascade);
     }
+}
+
+public class ChatModel {
+    public int Id { get; set; }
+    public string FromUserId { get; set; }
+    public string FromUserName { get; set; }
+    public string Message { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public int ChatRoomId { get; set; }
 }

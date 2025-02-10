@@ -1,8 +1,6 @@
 using BlazorSecretManager.Infrastructure;
 using BlazorSecretManager.Services.Auth;
 using eXtensionSharp;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
 using MudComposite;
 using MudComposite.Base;
@@ -14,8 +12,8 @@ public class UserListViewModel : MudDataGridViewModel<Entities.User, UserSearchM
 {
     private readonly IUserService _userService;
     
-    public UserListViewModel(MudViewModelItem mudViewModelItem,
-        IUserService userService) : base(mudViewModelItem)
+    public UserListViewModel(MudUtility mudUtility,
+        IUserService userService) : base(mudUtility)
     {
         _userService = userService;
     }

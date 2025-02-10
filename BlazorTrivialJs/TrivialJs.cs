@@ -8,6 +8,8 @@ public interface ITrivialJs
     Task Alert(string message);
     Task CopyToClipboard(string text);
     Task ScrollToBottom(string ele);
+    Task GoBack();
+    Task GoForward();
 }
 
 public class TrivialJs : ITrivialJs
@@ -37,5 +39,15 @@ public class TrivialJs : ITrivialJs
     public async Task ScrollToBottom(string ele)
     {
         await _jsRuntime.InvokeVoidAsync("scrollToBottom", ele);
+    }
+
+    public async Task GoBack()
+    {
+        await _jsRuntime.InvokeVoidAsync("window.history.back");
+    }
+
+    public async Task GoForward()
+    {
+        await _jsRuntime.InvokeVoidAsync("window.history.forward");
     }
 }

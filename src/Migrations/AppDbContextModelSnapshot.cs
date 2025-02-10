@@ -39,10 +39,9 @@ namespace BlazorSecretManager.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Message")
+                    b.Property<byte[]>("Message")
                         .IsRequired()
-                        .HasMaxLength(8000)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("BLOB");
 
                     b.HasKey("Id");
 

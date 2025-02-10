@@ -6,6 +6,7 @@
 @using BlazorSecretManager.Services.Messages
 @using BlazorTrivialJs
 @using eXtensionSharp
+@using Markdig.Syntax.Inlines
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
 
@@ -40,7 +41,12 @@
                             <MudChatHeader Time="@item.ReceivedDate"/>
                         }
                         <MudChatBubble>
-                            <pre>@item.Message</pre>
+                            <MudHtmlViewer Html="@item.Message" Borderless="true" />
+                            @* <MudMarkdown *@
+                            @*     Value="@item.Message" *@
+                            @*     Styling="Styling" *@
+                            @*     CodeBlockTheme="CodeBlockTheme.DraculaBase16" *@
+                            @*     TableCellMinWidth="100"/> *@
                         </MudChatBubble>
                     </MudChat>
                 }
@@ -48,9 +54,15 @@
         </MudPaper>
         <br/>
         <MudStack Row="true">
-                <textarea id="chatTextArea" @ref="textAreaRef" @bind="@_chatMessage" @bind:event="oninput" @onkeyup="HandleKeyUp" class="chat-input"
-                          placeholder="input chat message"
-                          rows="4" style="width:100%;"></textarea>
+            <div @onkeyup="HandleKeyUp" style="width: 100%; height: 150px;">
+                @*https://github.com/microsoft/roosterjs 참조해서 변경해 보자*@
+                <MudHtmlEditor @ref="_editor" Resizable="true" Outlined="true" Placeholder="Enter message.">
+                    <MudHtmlToolbarOptions InsertImage="true"/>
+                </MudHtmlEditor>
+            </div>
+            @* <textarea id="chatTextArea" @ref="textAreaRef" @bind="@_chatMessage" @bind:event="oninput" @onkeyup="HandleKeyUp" class="chat-input" *@
+            @*               placeholder="input chat message" *@
+            @*               rows="4" style="width:100%;"></textarea> *@
             <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Info" Variant="Variant.Filled" OnClick="SendMessage"/>
         </MudStack>
     </MudItem>
@@ -80,6 +92,15 @@
     bool _isReceivedMessage = false;
     private ElementReference textAreaRef;
     private DotNetObjectReference<ChatComponent> dotNetRef;
+    
+    private MudHtmlEditor _editor = default!;
+
+    private MudMarkdownStyling Styling { get; } = new()
+    {
+        Link = { Underline = Underline.Always },
+        Table = { Elevation = 1, IsBordered = true, IsStriped = true }
+    };
+
     
     protected override async Task OnInitializedAsync()
     {
@@ -190,7 +211,7 @@
         if (firstRender)
         {
             dotNetRef = DotNetObjectReference.Create(this);
-            await JsRuntime.InvokeVoidAsync("preventEnterDefault", dotNetRef, textAreaRef);
+            //await JsRuntime.InvokeVoidAsync("preventEnterDefault", dotNetRef, textAreaRef);
             _chatRooms =  (await ChatService.GetRooms(this.UserSession.UserId)).ToList();
             
             await JsRuntime.InvokeVoidAsync("initializeDraggablePopup", "popup");
@@ -218,20 +239,26 @@
             // Shift + Enter → 줄바꿈 유지
             
         }
-        else if(e.Key == "Enter" && !e.ShiftKey)
+        else if(e.Key is "Enter" or "NumpadEnter" && !e.ShiftKey)
         {
-            if(_chatMessage.xIsEmpty()) return;
             await SendMessage();
-            _chatMessage = string.Empty;
         }
     }
     
     async Task SendMessage()
     {
-        await _hubConnection.SendAsync("SendMessage", _selectedChatRoom.Id, UserSession.UserId, _chatMessage);
+        if(_editor.Html.xIsEmpty()) return;
+        
+        var html = _editor.Html;
+        await _hubConnection.SendAsync("SendMessage", _selectedChatRoom.Id, UserSession.UserId, html);
+        
+        await _editor.Reset();
+        
+        // if(_chatMessage.xIsEmpty()) return;
+        // await _hubConnection.SendAsync("SendMessage", _selectedChatRoom.Id, UserSession.UserId, _chatMessage);
     }
     
-    void RenderMessage(List<Chat> chats)
+    void RenderMessage(List<ChatModel> chats)
     {
         foreach (var chat in chats)
         {
@@ -262,7 +289,7 @@
         
     }
 
-    async Task<List<Chat>> LoadMessages(int roomId, int pageNo, int pageSize)
+    async Task<List<ChatModel>> LoadMessages(int roomId, int pageNo, int pageSize)
     {
         var chats = await this.ChatService.GetChats(roomId, pageNo, pageSize);
         return chats.Item2.ToList();
@@ -327,4 +354,18 @@
         }
         Console.WriteLine("chat dispose");
     }
+    
+    /// <remarks>
+    /// replaces all h1 tags with h4
+    /// </remarks>
+    private Typo OverrideHeaderTypo(Typo x)
+    {
+        return x == Typo.h1 ? Typo.h4 : x;
+    }
+
+    private static string? OverrideLink(LinkInline x)
+    {
+        return x.Url;
+    }
+
 }

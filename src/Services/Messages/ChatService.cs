@@ -10,7 +10,7 @@ public interface IChatService
     Task<int> CreateRoom(string ownerId, string name, string[] attendUsers);
     Task<IReadOnlyList<ChatRoom>> GetRooms(string ownerId);
     
-    Task<(int totalcount, IReadOnlyList<Chat>)> GetChats(int roomId, int pageNo = 1, int pageSize = 50);
+    Task<(int totalcount, IReadOnlyList<ChatModel>)> GetChats(int roomId, int pageNo = 1, int pageSize = 50);
     Task AddChat(int roomId, string fromUserId, string message);
 }
 
@@ -49,7 +49,7 @@ public class ChatService : IChatService
         return ownRooms.Concat(otherRooms).ToList();
     }
 
-    public async Task<(int totalcount, IReadOnlyList<Chat>)> GetChats(int roomId, int pageNo = 1, int pageSize = 50)
+    public async Task<(int totalcount, IReadOnlyList<ChatModel>)> GetChats(int roomId, int pageNo = 1, int pageSize = 50)
     {
         var query = _dbContext.Chats.AsNoTracking()
             .Where(m => m.ChatRoomId == roomId);
@@ -58,7 +58,17 @@ public class ChatService : IChatService
             .OrderByDescending(m => m.Id)
             .Skip((pageNo - 1) * pageSize)
             .Take(pageSize)
+            .Select(m => new ChatModel()
+            {
+                Id = m.Id,
+                FromUserId = m.FromUserId,
+                FromUserName = m.FromUserName,
+                Message = m.Message.xToString(),
+                CreatedAt = m.CreatedAt,
+            })
             .ToListAsync();
+        
+        
         
         return (total, items);
     }
@@ -69,7 +79,7 @@ public class ChatService : IChatService
         var item = new Chat { ChatRoomId = roomId,
             FromUserId = fromUser.Id,
             FromUserName = fromUser.UserName,
-            Message = message, 
+            Message = message.xToBytes(), 
             CreatedAt = DateTime.Now};
         await _dbContext.Chats.AddAsync(item);
         await _dbContext.SaveChangesAsync();
