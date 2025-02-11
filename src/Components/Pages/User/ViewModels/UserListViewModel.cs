@@ -8,7 +8,7 @@ using MudComposite.ViewComponents.Composites.ListView;
 
 namespace BlazorSecretManager.Components.Pages.User.ViewModels;
 
-public class UserListViewModel : MudDataGridViewModel<Entities.User, UserSearchModel>, IUserListViewModel
+public class UserListViewModel : MudListViewModel<Entities.User, UserSearchModel>, IUserListViewModel
 {
     private readonly IUserService _userService;
     

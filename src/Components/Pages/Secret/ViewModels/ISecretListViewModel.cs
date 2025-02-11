@@ -2,6 +2,6 @@
 
 namespace BlazorSecretManager.Components.Pages.Secret.ViewModels;
 
-public interface ISecretListViewModel : IMudDataGridViewModel<Entities.Secret, SecretSearchModel>
+public interface ISecretListViewModel : IMudListViewModel<Entities.Secret, SecretSearchModel>
 {
 }

@@ -16,7 +16,7 @@ namespace BlazorSecretManager.Components.Pages.Secret.ViewModels;
 
 
 
-public class SecretListViewModel : MudDataGridViewModel<Entities.Secret, SecretSearchModel>, ISecretListViewModel
+public class SecretListViewModel : MudListViewModel<Entities.Secret, SecretSearchModel>, ISecretListViewModel
 {
     private readonly ISecretService _service;
     private readonly IUserService _userService;
