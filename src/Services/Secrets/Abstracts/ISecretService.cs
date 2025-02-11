@@ -1,6 +1,6 @@
 using BlazorSecretManager.Entities;
 using BlazorSecretManager.Infrastructure;
-using MudComposite;
+using MudMvvMKit;
 
 namespace BlazorSecretManager.Services.Secrets.Abstracts;
 

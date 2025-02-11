@@ -1,6 +1,6 @@
 using BlazorSecretManager.Infrastructure;
 using BlazorSecretManager.Services.Auth.Requests;
-using MudComposite;
+using MudMvvMKit;
 
 namespace BlazorSecretManager.Services.Auth.Abstracts;
 

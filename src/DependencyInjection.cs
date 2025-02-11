@@ -25,7 +25,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using MudBlazor;
 using MudBlazor.Extensions;
 using MudBlazor.Services;
-using MudComposite;
+using MudMvvMKit;
 
 namespace BlazorSecretManager;
 

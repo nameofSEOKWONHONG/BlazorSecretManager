@@ -4,7 +4,7 @@ using BlazorSecretManager.Services.Secrets.Abstracts;
 using eXtensionSharp;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
-using MudComposite;
+using MudMvvMKit;
 
 namespace BlazorSecretManager.Services.Secrets;
 

@@ -1,4 +1,4 @@
-﻿using MudComposite.ViewComponents.Composites.ListView;
+﻿using MudMvvMKit.ViewComponents.ViewModels.ListView;
 
 namespace BlazorSecretManager.Components.Pages.Secret.ViewModels;
 

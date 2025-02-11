@@ -1,4 +1,4 @@
-﻿using MudComposite.Base;
+﻿using MudMvvMKit.Base;
 
 namespace BlazorSecretManager.Infrastructure;
 

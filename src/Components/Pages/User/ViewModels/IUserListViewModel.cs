@@ -1,5 +1,5 @@
 ﻿using BlazorSecretManager.Infrastructure;
-using MudComposite.ViewComponents.Composites.ListView;
+using MudMvvMKit.ViewComponents.ViewModels.ListView;
 
 namespace BlazorSecretManager.Components.Pages.User.ViewModels;
 

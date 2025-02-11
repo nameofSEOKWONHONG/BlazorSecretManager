@@ -4,7 +4,7 @@ using BlazorSecretManager.Services.Auth.Abstracts;
 using BlazorSecretManager.Services.Auth.Requests;
 using eXtensionSharp;
 using Microsoft.AspNetCore.Identity;
-using MudComposite;
+using MudMvvMKit;
 
 namespace BlazorSecretManager.Services.Auth;
 

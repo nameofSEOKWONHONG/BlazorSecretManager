@@ -9,8 +9,8 @@ using eXtensionSharp;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using MudBlazor;
-using MudComposite.Base;
-using MudComposite.ViewComponents.Composites.ListView;
+using MudMvvMKit.Base;
+using MudMvvMKit.ViewComponents.ViewModels.ListView;
 
 namespace BlazorSecretManager.Components.Pages.Secret.ViewModels;
 

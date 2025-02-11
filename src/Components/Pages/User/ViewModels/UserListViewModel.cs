@@ -2,9 +2,9 @@ using BlazorSecretManager.Infrastructure;
 using BlazorSecretManager.Services.Auth;
 using eXtensionSharp;
 using MudBlazor;
-using MudComposite;
-using MudComposite.Base;
-using MudComposite.ViewComponents.Composites.ListView;
+using MudMvvMKit;
+using MudMvvMKit.Base;
+using MudMvvMKit.ViewComponents.ViewModels.ListView;
 
 namespace BlazorSecretManager.Components.Pages.User.ViewModels;
 

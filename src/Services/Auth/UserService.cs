@@ -6,8 +6,8 @@ using eXtensionSharp;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.EntityFrameworkCore;
-using MudComposite;
-using MudComposite.Base;
+using MudMvvMKit;
+using MudMvvMKit.Base;
 using SecretManager;
 
 namespace BlazorSecretManager.Services.Auth;
