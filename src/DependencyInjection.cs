@@ -117,6 +117,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<INoticeService, NoticeService>();
         services.AddScoped<IChatService, ChatService>();
+        services.AddScoped<IFileService, FileService>();
     }
 
     public static void UseMudSecretManager(this WebApplication app)

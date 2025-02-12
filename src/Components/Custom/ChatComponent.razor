@@ -8,6 +8,7 @@
 @using eXtensionSharp
 @using Markdig.Syntax.Inlines
 @using Microsoft.AspNetCore.SignalR.Client
+@using Nextended.Blazor.Models
 @implements IAsyncDisposable
 
 <MudGrid>
@@ -56,9 +57,8 @@
         <MudStack Row="true">
             <div @onkeyup="HandleKeyUp" style="width: 100%; height: 150px;">
                 @*https://github.com/microsoft/roosterjs 참조해서 변경해 보자*@
-                <MudHtmlEditor @ref="_editor" Resizable="true" Outlined="true" Placeholder="Enter message.">
-                    <MudHtmlToolbarOptions InsertImage="true"/>
-                </MudHtmlEditor>
+                <MudExRichTextEdit @ref="@_editor" Resizable="true" Outlined="true" Placeholder="Enter message." CustomUploadFunc="OnUpload" @bind-Value="_chatMessage" Immediate="true">
+                </MudExRichTextEdit>
             </div>
             @* <textarea id="chatTextArea" @ref="textAreaRef" @bind="@_chatMessage" @bind:event="oninput" @onkeyup="HandleKeyUp" class="chat-input" *@
             @*               placeholder="input chat message" *@
@@ -73,7 +73,7 @@
 @inject IJSRuntime JsRuntime;
 @inject IChatService ChatService;
 @inject IDialogService DialogService;
-
+@inject IFileService FileService;
 @code {
     [Parameter] public UserSession UserSession { get; set; }
     
@@ -93,7 +93,7 @@
     private ElementReference textAreaRef;
     private DotNetObjectReference<ChatComponent> dotNetRef;
     
-    private MudHtmlEditor _editor = default!;
+    private MudExRichTextEdit _editor = default!;
 
     private MudMarkdownStyling Styling { get; } = new()
     {
@@ -247,13 +247,16 @@
     
     async Task SendMessage()
     {
-        if(_editor.Html.xIsEmpty()) return;
-        
-        var html = _editor.Html;
-        await _hubConnection.SendAsync("SendMessage", _selectedChatRoom.Id, UserSession.UserId, html);
-        
-        await _editor.Reset();
-        
+        // if(_editor.Html.xIsEmpty()) return;
+        //
+        // var html = _editor.Html;
+        // await _hubConnection.SendAsync("SendMessage", _selectedChatRoom.Id, UserSession.UserId, html);
+        //
+        // await _editor.Reset();
+
+        if(_chatMessage.xIsEmpty()) return;
+        await _hubConnection.SendAsync("SendMessage", _selectedChatRoom.Id, UserSession.UserId, _chatMessage);
+        _chatMessage = string.Empty;
         // if(_chatMessage.xIsEmpty()) return;
         // await _hubConnection.SendAsync("SendMessage", _selectedChatRoom.Id, UserSession.UserId, _chatMessage);
     }
@@ -366,6 +369,16 @@
     private static string? OverrideLink(LinkInline x)
     {
         return x.Url;
+    }
+    
+    private async Task<string> OnUpload(UploadableFile arg)
+    {
+        var url = NavManager.BaseUri;
+        var filename = $"{Guid.NewGuid():N}.{arg.ContentType.xSplit("/")[1]}";
+        await FileService.UploadFile(arg.Data, filename, arg.ContentType);
+        var savedUrl = $"{url}/images/{filename}";
+        
+        return savedUrl;
     }
 
 }
