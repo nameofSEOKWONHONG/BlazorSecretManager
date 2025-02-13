@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using BlazorSecretManager.Components;
 using BlazorSecretManager.Components.Pages.Secret.ViewModels;
 using BlazorSecretManager.Components.Pages.User.ViewModels;
-using BlazorSecretManager.Controllers;
+using BlazorSecretManager.Endpoints.NoticeEndpoints;
 using BlazorSecretManager.Entities;
 using BlazorSecretManager.Hubs;
 using BlazorSecretManager.Infrastructure;
@@ -14,6 +14,8 @@ using BlazorSecretManager.Services.Messages;
 using BlazorSecretManager.Services.Secrets;
 using BlazorSecretManager.Services.Secrets.Abstracts;
 using BlazorTrivialJs;
+using FastEndpoints;
+using FastEndpoints.Security;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authorization;
@@ -77,6 +79,10 @@ public static class DependencyInjection
 
         services.AddControllers();
 
+        services.AddAuthenticationJwtBearer(s => s.SigningKey = Environment.GetEnvironmentVariable("SECURITY_KEY")) //add this
+            .AddAuthorization() //add this
+            .AddFastEndpoints();
+
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<ISecretService, SecretService>();
@@ -134,6 +140,7 @@ public static class DependencyInjection
         
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseFastEndpoints();
 
         app.UseAntiforgery();
 
