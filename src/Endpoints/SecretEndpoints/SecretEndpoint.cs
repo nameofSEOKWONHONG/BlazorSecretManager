@@ -20,8 +20,7 @@ public class SecretEndpoint : Endpoint<GetSecretRequest>
     
     public override void Configure()
     {
-        Get("/api/secret/{key}/{id}");
-        AllowAnonymous();
+        Get("/api/secret");
         PreProcessor<AuthPreProcessor<GetSecretRequest>>();
     }
 

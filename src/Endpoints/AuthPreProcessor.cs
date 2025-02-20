@@ -16,7 +16,9 @@ public class AuthPreProcessor<TRequest> : IPreProcessor<TRequest>
             return;
         }
         
-        var exists = await dbContext.Users.FirstOrDefaultAsync(m => m.UserKey == token.ToString(), cancellationToken: ct);
+        var userKey = token.ToString().Replace("Bearer", "").Trim();
+        
+        var exists = await dbContext.Users.FirstOrDefaultAsync(m => m.UserKey == userKey, cancellationToken: ct);
         if (exists.xIsEmpty())
         {
             await context.HttpContext.Response.SendUnauthorizedAsync(cancellation: ct);

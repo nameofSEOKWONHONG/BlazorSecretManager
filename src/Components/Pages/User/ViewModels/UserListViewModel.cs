@@ -41,9 +41,22 @@ public class UserListViewModel : MudListViewModel<Entities.User, UserSearchModel
 
         this.OnClick = async (id, obj) =>
         {
-            var item = obj.xAs<Entities.User>();
-            await this._userService.Lock(item.Id);
-            item.LockoutEnabled = !item.LockoutEnabled;
+            switch (id)
+            {
+                case "lock":
+                {
+                    var item = obj.xAs<Entities.User>();
+                    await this._userService.Lock(item.Id);
+                    item.LockoutEnabled = !item.LockoutEnabled;
+                    break;
+                }
+                case "jwt":
+                {
+                    // TODO: create jwt
+                    break;
+                }
+                    
+            }
         };
     }
 

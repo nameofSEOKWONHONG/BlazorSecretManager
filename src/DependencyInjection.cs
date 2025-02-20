@@ -24,10 +24,12 @@ using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.OpenApi;
 using MudBlazor;
 using MudBlazor.Extensions;
 using MudBlazor.Services;
 using MudMvvMKit;
+using Scalar.AspNetCore;
 
 namespace BlazorSecretManager;
 
@@ -54,6 +56,15 @@ public static class DependencyInjection
         var connectionString = Environment.GetEnvironmentVariable("SQLITE_CONNECTION") ??
                                throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         #endif
+        
+        services.AddCors();
+// Add services to the container.
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+        services.AddOpenApi(options =>
+        {
+            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
+            options.AddDocumentTransformer<OpenApiSecuritySchemeTransformer>();
+        });
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite(connectionString));
@@ -128,6 +139,20 @@ public static class DependencyInjection
 
     public static void UseMudSecretManager(this WebApplication app)
     {
+        app.MapOpenApi();
+        app
+            .MapScalarApiReference(options =>
+            {
+                options.WithOpenApiRoutePattern("/openapi/v1.json");
+                options.Theme = ScalarTheme.None;
+                options.Authentication = 
+                    new ScalarAuthenticationOptions
+                    {
+                        PreferredSecurityScheme = "Bearer"
+                    };
+            })
+            .AllowAnonymous();
+        
         // Configure the HTTP request pipeline.
         if (!app.Environment.IsDevelopment())
         {
