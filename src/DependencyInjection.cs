@@ -16,6 +16,7 @@ using BlazorSecretManager.Services.Secrets.Abstracts;
 using BlazorTrivialJs;
 using FastEndpoints;
 using FastEndpoints.Security;
+using FastEndpoints.Swagger;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authorization;
@@ -25,11 +26,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.OpenApi;
+using Microsoft.OpenApi.Models;
 using MudBlazor;
 using MudBlazor.Extensions;
 using MudBlazor.Services;
 using MudMvvMKit;
-using Scalar.AspNetCore;
+using NSwag;
 
 namespace BlazorSecretManager;
 
@@ -63,7 +65,6 @@ public static class DependencyInjection
         services.AddOpenApi(options =>
         {
             options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
-            options.AddDocumentTransformer<OpenApiSecuritySchemeTransformer>();
         });
 
         services.AddDbContext<AppDbContext>(options =>
@@ -89,10 +90,23 @@ public static class DependencyInjection
         services.AddMudMarkdownServices();
 
         services.AddControllers();
-
-        services.AddAuthenticationJwtBearer(s => s.SigningKey = Environment.GetEnvironmentVariable("SECURITY_KEY")) //add this
-            .AddAuthorization() //add this
-            .AddFastEndpoints();
+        services.AddFastEndpoints()
+            .SwaggerDocument(o =>
+            {
+                o.EnableJWTBearerAuth = false;
+                o.DocumentSettings = s =>
+                {
+                    s.DocumentName = "Initial-Release";
+                    s.Title = "Web API";
+                    s.Version = "v1.0";
+                    s.AddAuth("ApiKey", new()
+                    {
+                        Name = "api_key",
+                        In = OpenApiSecurityApiKeyLocation.Header,
+                        Type = OpenApiSecuritySchemeType.ApiKey
+                    });
+                };
+            });
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserService, UserService>();
@@ -140,18 +154,6 @@ public static class DependencyInjection
     public static void UseMudSecretManager(this WebApplication app)
     {
         app.MapOpenApi();
-        app
-            .MapScalarApiReference(options =>
-            {
-                options.WithOpenApiRoutePattern("/openapi/v1.json");
-                options.Theme = ScalarTheme.None;
-                options.Authentication = 
-                    new ScalarAuthenticationOptions
-                    {
-                        PreferredSecurityScheme = "Bearer"
-                    };
-            })
-            .AllowAnonymous();
         
         // Configure the HTTP request pipeline.
         if (!app.Environment.IsDevelopment())
@@ -165,8 +167,9 @@ public static class DependencyInjection
         
         app.UseAuthentication();
         app.UseAuthorization();
-        app.UseFastEndpoints();
-
+        app.UseFastEndpoints()
+            .UseSwaggerGen(); //add this
+        
         app.UseAntiforgery();
 
         app.UseHangfireDashboard();

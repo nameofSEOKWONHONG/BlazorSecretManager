@@ -1,21 +1,33 @@
 using BlazorSecretManager.Infrastructure;
 using BlazorSecretManager.Services.Auth;
+using BlazorTrivialJs;
 using eXtensionSharp;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using MudBlazor;
 using MudMvvMKit;
 using MudMvvMKit.Base;
 using MudMvvMKit.ViewComponents.ViewModels.ListView;
+using SecretManager;
 
 namespace BlazorSecretManager.Components.Pages.User.ViewModels;
 
 public class UserListViewModel : MudListViewModel<Entities.User, UserSearchModel>, IUserListViewModel
 {
     private readonly IUserService _userService;
-    
+    private readonly ITrivialJs _trivialJs;
+    private readonly ISnackbar _snackbar;
+    private readonly ProtectedSessionStorage _protectedSessionStorage;
+
     public UserListViewModel(MudUtility mudUtility,
-        IUserService userService) : base(mudUtility)
+        IUserService userService,
+        ITrivialJs trivialJs,
+        ISnackbar snackbar,
+        ProtectedSessionStorage protectedSessionStorage) : base(mudUtility)
     {
         _userService = userService;
+        _trivialJs = trivialJs;
+        _snackbar = snackbar;
+        _protectedSessionStorage = protectedSessionStorage;
     }
 
     public override void Initialize()
@@ -41,21 +53,21 @@ public class UserListViewModel : MudListViewModel<Entities.User, UserSearchModel
 
         this.OnClick = async (id, obj) =>
         {
+            var item = obj.xAs<Entities.User>();
             switch (id)
             {
                 case "lock":
                 {
-                    var item = obj.xAs<Entities.User>();
                     await this._userService.Lock(item.Id);
                     item.LockoutEnabled = !item.LockoutEnabled;
                     break;
                 }
-                case "jwt":
+                case "secretkey":
                 {
-                    // TODO: create jwt
+                    await _trivialJs.CopyToClipboard(item.UserKey);
+                    _snackbar.Add("secret key copied to clipboard", Severity.Success);
                     break;
                 }
-                    
             }
         };
     }
