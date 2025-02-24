@@ -4,3 +4,25 @@
 
 <h1>Welcome to Secret Manager</h1>
 <p>This is an implementation of Secret Manager for self-hosting.</p>
+
+<MudPaper Class="mud-paper">
+    <MudText Typo="Typo.subtitle1">C# EXAMPLE</MudText>
+    <CodeBlock
+        Code="@_exampleCode"
+        Language="CodeLanguage.CSharp"
+        EnableLineNumbers="true"
+        EnableCommandLine="false"/>
+</MudPaper>
+
+@code {
+    readonly string _exampleCode = @"
+        using var client = new HttpClient();
+        client.BaseAddress = new Uri(""[hosting url]"");
+        client.DefaultRequestHeaders.Accept.Clear();
+        client.DefaultRequestHeaders.Add(""apiKey"", ""[apiKey]"");
+        var res = await client.GetAsync(""[copied secret url]"");
+        res.EnsureSuccessStatusCode();
+        var result = await res.Content.ReadAsJsonAsync<[YourSecretType]>();
+";
+
+}

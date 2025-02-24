@@ -14,6 +14,7 @@ using BlazorSecretManager.Services.Messages;
 using BlazorSecretManager.Services.Secrets;
 using BlazorSecretManager.Services.Secrets.Abstracts;
 using BlazorTrivialJs;
+using Brism;
 using FastEndpoints;
 using FastEndpoints.Security;
 using FastEndpoints.Swagger;
@@ -122,6 +123,7 @@ public static class DependencyInjection
 
         services.AddScoped<ISecretListViewModel, SecretListViewModel>();
         services.AddScoped<IUserListViewModel, UserListViewModel>();
+        services.AddBrism();
 
         services.AddHybridCache(options =>
         {

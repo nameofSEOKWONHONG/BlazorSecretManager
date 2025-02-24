@@ -62,7 +62,7 @@ public class UserListViewModel : MudListViewModel<Entities.User, UserSearchModel
                     item.LockoutEnabled = !item.LockoutEnabled;
                     break;
                 }
-                case "secretkey":
+                case "copyApiKey":
                 {
                     await _trivialJs.CopyToClipboard(item.UserKey);
                     _snackbar.Add("secret key copied to clipboard", Severity.Success);

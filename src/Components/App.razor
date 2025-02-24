@@ -18,6 +18,12 @@
     <!-- Tizzani.MudBlazor.HtmlEditor -->
     <link href="_content/Tizzani.MudBlazor.HtmlEditor/MudHtmlEditor.css" rel="stylesheet" />
 
+    <!-- Base PrismJS styles (required) -->
+    <link href="_content/Brism/prism.css" rel="stylesheet" />
+
+    <!-- Choose ONE theme from below (we're using synthwave84 as an example) -->
+    <link href="_content/Brism/prism-synthwave84.css" rel="stylesheet" />
+
     <HeadOutlet @rendermode="new InteractiveServerRenderMode(prerender: true)"/>
 </head>
 
@@ -30,6 +36,9 @@
 <!-- Tizzani.MudBlazor.HtmlEditor -->
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 <script src="_content/Tizzani.MudBlazor.HtmlEditor/quill-blot-formatter.min.js"></script> <!-- optional; for image resize -->
+
+<script src="_content/Brism/prism.js"></script>
+<script type="module" src="_content/Brism/prismInterop.js"></script>
 
 <script src="js/chat.min.js"></script>
 <script type="text/javascript">

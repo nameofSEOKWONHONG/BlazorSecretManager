@@ -54,7 +54,6 @@
             <PropertyColumn Property="m => m.Email"/>
             <PropertyColumn Property="m => m.UserName"/>
             <PropertyColumn Property="m => m.RoleName"/>
-            @* <PropertyColumn Property="m => m.UserKey"/> *@
             <PropertyColumn Property="m => m.LockoutEnabled"/>
             <TemplateColumn>
                 <CellTemplate>
@@ -69,7 +68,7 @@
                             {
                                 <MudIconButton Icon="@Icons.Material.Filled.Lock" Color="Color.Error" Variant="Variant.Filled" OnClick="@(() => this.Click("lock", context.Item))"/>
                             }
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Filled" OnClick="@(() => this.Click("secretkey", context.Item))"/>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Filled" OnClick="@(() => this.Click("copyApiKey", context.Item))"/>
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Filled" OnClick="() => this.Remove(context.Item)"/>
                         }
                     </MudStack>
